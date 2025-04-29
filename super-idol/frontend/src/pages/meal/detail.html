@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>餐點詳情 - Super Idol</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <header></header>
+
+  <main class="container mt-lg">
+    <div class="page-header">
+      <h1 id="meal-name">餐點名稱</h1>
+      <div class="page-actions">
+        <button class="btn btn-secondary" id="edit-btn">編輯</button>
+        <button class="btn btn-danger" id="delete-btn">刪除</button>
+      </div>
+    </div>
+
+    <div class="meal-detail">
+      <div class="meal-info">
+        <p id="meal-description">餐點描述</p>
+        <div class="nutrition-info">
+          <div class="nutrition-item">
+            <span class="label">熱量</span>
+            <span class="value" id="calories">0</span>
+            <span class="unit">kcal</span>
+          </div>
+          <div class="nutrition-item">
+            <span class="label">蛋白質</span>
+            <span class="value" id="protein">0</span>
+            <span class="unit">g</span>
+          </div>
+          <div class="nutrition-item">
+            <span class="label">碳水化合物</span>
+            <span class="value" id="carbs">0</span>
+            <span class="unit">g</span>
+          </div>
+          <div class="nutrition-item">
+            <span class="label">脂肪</span>
+            <span class="value" id="fat">0</span>
+            <span class="unit">g</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="meal-history">
+        <h2>歷史記錄</h2>
+        <div class="history-list" id="history-list">
+          <!-- 歷史記錄將由 JavaScript 動態生成 -->
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer></footer>
+  <script type="module" src="/scripts/main.js"></script>
+</body>
+</html> 

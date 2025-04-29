@@ -1,0 +1,95 @@
+<!-- 
+    檔案：index.html
+    用途：用戶個人資料頁面
+    功能：
+    - 顯示用戶基本資訊
+    - 管理用戶設定
+    - 顯示用戶統計數據
+-->
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個人資料 - Super Idol</title>
+    <link rel="stylesheet" href="/styles/pages/user_profile.css">
+</head>
+<body>
+    <div class="container">
+        <h1>個人資料</h1>
+        <div class="content">
+            <div class="profile-section">
+                <div class="profile-header">
+                    <div class="avatar">
+                        <img src="" alt="用戶頭像" class="avatar-img">
+                    </div>
+                    <div class="profile-info">
+                        <h2 class="username"></h2>
+                        <p class="email"></p>
+                    </div>
+                </div>
+                
+                <div class="profile-details">
+                    <div class="detail-item">
+                        <h3>基本資訊</h3>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <label>姓名</label>
+                                <p class="name"></p>
+                            </div>
+                            <div class="info-item">
+                                <label>性別</label>
+                                <p class="gender"></p>
+                            </div>
+                            <div class="info-item">
+                                <label>年齡</label>
+                                <p class="age"></p>
+                            </div>
+                            <div class="info-item">
+                                <label>身高</label>
+                                <p class="height"></p>
+                            </div>
+                            <div class="info-item">
+                                <label>體重</label>
+                                <p class="weight"></p>
+                            </div>
+                            <div class="info-item">
+                                <label>目標</label>
+                                <p class="goal"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <h3>營養目標</h3>
+                        <div class="nutrition-goals">
+                            <div class="goal-item">
+                                <label>每日熱量</label>
+                                <p class="calorie-goal"></p>
+                            </div>
+                            <div class="goal-item">
+                                <label>每日蛋白質</label>
+                                <p class="protein-goal"></p>
+                            </div>
+                            <div class="goal-item">
+                                <label>每日碳水化合物</label>
+                                <p class="carbs-goal"></p>
+                            </div>
+                            <div class="goal-item">
+                                <label>每日脂肪</label>
+                                <p class="fat-goal"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="profile-actions">
+                    <button class="btn-edit">編輯資料</button>
+                    <button class="btn-change-password">修改密碼</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/scripts/pages/user_profile.js"></script>
+</body>
+</html> 

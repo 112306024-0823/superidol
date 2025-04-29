@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>餐點表單 - Super Idol</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <header></header>
+
+  <main class="container mt-lg">
+    <div class="page-header">
+      <h1 id="form-title">新增餐點</h1>
+      <div class="page-actions">
+        <button class="btn btn-secondary" id="cancel-btn">取消</button>
+        <button class="btn btn-primary" id="save-btn">儲存</button>
+      </div>
+    </div>
+
+    <form id="meal-form" class="form">
+      <div class="form-group">
+        <label for="name">餐點名稱</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="description">描述</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="calories">熱量 (kcal)</label>
+          <input type="number" id="calories" name="calories" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label for="protein">蛋白質 (g)</label>
+          <input type="number" id="protein" name="protein" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label for="carbs">碳水化合物 (g)</label>
+          <input type="number" id="carbs" name="carbs" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label for="fat">脂肪 (g)</label>
+          <input type="number" id="fat" name="fat" min="0" required>
+        </div>
+      </div>
+    </form>
+  </main>
+
+  <footer></footer>
+  <script type="module" src="/scripts/main.js"></script>
+</body>
+</html> 
