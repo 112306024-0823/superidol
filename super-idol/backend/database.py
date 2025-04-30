@@ -90,6 +90,7 @@ def get_db() -> Generator:
         db.close()
 
 # 測試連接（當直接執行此檔案時）
+# 早安阿今天過得好嗎
 if __name__ == "__main__":
     print("Testing database connection...")
     try:
