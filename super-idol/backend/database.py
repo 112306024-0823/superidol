@@ -15,7 +15,7 @@ env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 if not os.path.exists(env_path):
     logger.warning(f".env file not found at {env_path}")
 load_dotenv(env_path)
-
+#ssd
 # Database configuration
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
