@@ -21,7 +21,7 @@ DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "3306")  # Default MySQL port
-DB_NAME = "superidol"  # 修改為正確的資料庫名稱
+DB_NAME = "superidol"  # 修改為正確的資料庫名稱!
 
 # Validate required environment variables
 required_vars = {
