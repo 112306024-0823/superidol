@@ -32,7 +32,11 @@ ENV/
 
 # Environment variables
 .env
-
+DB_USER= DBMS11302
+DB_PASSWORD= ilovedbms
+DB_HOST=superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com
+DB_PORT= 3306
+DB_NAME=superidol_DB
 # Logs
 *.log
 

@@ -1,2 +1,5 @@
-"""服務層初始化模塊"""
-from . import user_service, meal_service, food_service 
+"""
+Services initialization.
+"""
+# No automatic imports here to prevent loading modules that require SQLAlchemy models
+# Service modules can be imported explicitly where needed 

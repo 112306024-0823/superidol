@@ -1,6 +1,10 @@
-"""API 初始化模塊"""
-from flask import Blueprint
+"""
+API blueprints initialization.
+"""
 
-bp = Blueprint('api', __name__)
+from app.api.auth import auth_bp
+from app.api.food import food_bp
+from app.api.exercise import exercise_bp
+from app.api.report import report_bp
 
-from . import v1 
+__all__ = ['auth_bp', 'food_bp', 'exercise_bp', 'report_bp'] 

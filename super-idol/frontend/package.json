@@ -1,27 +1,30 @@
 {
   "name": "super-idol-frontend",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
-    "format": "prettier --write src/"
+    "serve": "vite preview",
+    "lint": "eslint --ext .js,.vue --ignore-path .gitignore --fix src"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
     "axios": "^1.6.2",
+    "chart.js": "^4.4.0",
+    "element-plus": "^2.9.9",
+    "pinia": "^2.1.7",
+    "super-idol": "file:..",
     "vue": "^3.3.4",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^4.5.0",
-    "eslint": "^8.49.0",
-    "eslint-plugin-vue": "^9.17.0",
-    "prettier": "^3.0.3",
-    "vite": "^4.4.9"
+    "@vitejs/plugin-vue": "^5.2.3",
+    "eslint": "^8.53.0",
+    "eslint-plugin-vue": "^9.18.1",
+    "vite": "^6.3.5"
   },
-  "description": "",
+  "description": "Super Idol 是一個健康飲食追蹤應用程式，幫助用戶管理日常飲食和營養攝取。",
   "main": "vite.config.js",
   "keywords": [],
   "author": "",
