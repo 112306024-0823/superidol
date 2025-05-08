@@ -1,4 +1,4 @@
-// dev.js
+// dev.js 開發環境啟動腳本
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
