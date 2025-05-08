@@ -5,9 +5,13 @@ services:
     public: true
     buildCommand: >
       cd super-idol && npm install && npm run build && 
-      mkdir -p backend/static && cp -r frontend/dist/* backend/static/ && 
-      cd .. && pip install -r requirements.txt
-    startCommand: cd super-idol/backend && gunicorn --bind 0.0.0.0:$PORT run:app
+      ls -la frontend/dist/ &&
+      mkdir -p backend/static && 
+      cp -rv frontend/dist/* backend/static/ && 
+      ls -la backend/static/ &&
+      cd .. && 
+      pip install -r requirements.txt
+    startCommand: cd super-idol/backend && ls -la static/ && gunicorn --bind 0.0.0.0:$PORT run:app
     envVars:
       - key: DB_USER
         sync: false
