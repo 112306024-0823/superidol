@@ -11,7 +11,13 @@ services:
       ls -la backend/static/ &&
       cd .. && 
       pip install -r requirements.txt
-    startCommand: cd super-idol/backend && ls -la static/ && gunicorn --bind 0.0.0.0:$PORT run:app
+    startCommand: >
+      cd super-idol && 
+      mkdir -p backend/static && 
+      cp -rv frontend/dist/* backend/static/ || echo "複製文件失敗，可能原因是前端尚未構建" && 
+      ls -la backend/static/ && 
+      cd backend && 
+      gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER
         sync: false
