@@ -3,8 +3,8 @@ services:
     name: super-idol
     env: python
     public: true
-    buildCommand: npm install && npm run build && pip install -r requirements.txt
-    startCommand: cd backend && gunicorn --bind 0.0.0.0:$PORT run:app
+    buildCommand: cd super-idol && npm install && npm run build && cd .. && pip install -r requirements.txt
+    startCommand: cd super-idol/backend && gunicorn --bind 0.0.0.0:$PORT run:app
     envVars:
       - key: DB_USER
         sync: false
