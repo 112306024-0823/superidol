@@ -20,19 +20,30 @@ logger = logging.getLogger(__name__)
 # 尋找靜態文件目錄
 def find_static_directory():
     """尋找最佳的靜態文件目錄，按優先級：
-    1. ../frontend/dist (前端構建目錄)
-    2. ./static (後端靜態目錄)
+    1. ./static (直接在當前目錄下的靜態目錄)
+    2. ../frontend/dist (前端構建目錄)
+    3. /opt/render/project/src/backend/static (Render 環境下的絕對路徑)
+    4. /opt/render/project/src/frontend/dist (Render 環境下的絕對路徑)
     """
     # 獲取當前文件目錄
     backend_dir = os.path.dirname(os.path.abspath(__file__))
     # 上一級目錄，即super-idol目錄
     project_dir = os.path.dirname(backend_dir)
     
-    # 嘗試可能的靜態目錄路徑
+    # 嘗試可能的靜態目錄路徑，按優先級順序
     possible_paths = [
-        os.path.join(project_dir, 'frontend', 'dist'),  # 前端構建目錄
         os.path.join(backend_dir, 'static'),            # 後端靜態目錄
+        os.path.join(project_dir, 'frontend', 'dist'),  # 前端構建目錄
     ]
+    
+    # 為 Render 環境添加絕對路徑
+    if os.environ.get('RENDER') == 'true':
+        render_paths = [
+            '/opt/render/project/src/backend/static',
+            '/opt/render/project/src/frontend/dist'
+        ]
+        # 在最高優先級添加這些路徑
+        possible_paths = render_paths + possible_paths
     
     found_path = None
     
