@@ -15,8 +15,13 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 
 # 引入API路由
-from app.api import api_bp
-app.register_blueprint(api_bp, url_prefix='/api')
+from app.api import auth_bp, food_bp, exercise_bp, report_bp
+
+# 註冊所有藍圖
+app.register_blueprint(auth_bp, url_prefix='/api/auth')
+app.register_blueprint(food_bp, url_prefix='/api/food')
+app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
+app.register_blueprint(report_bp, url_prefix='/api/report')
 
 # 前端路由處理
 @app.route('/', defaults={'path': ''})
