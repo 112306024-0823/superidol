@@ -5,24 +5,31 @@ services:
     public: true
     buildCommand: >
       echo "開始構建流程" &&
-      cd super-idol && 
+      # 檢查當前目錄結構
+      pwd && ls -la && 
+      # 檢查前端目錄結構
+      echo "檢查前端目錄結構：" &&
+      ls -la frontend/ &&
+      ls -la frontend/src/ &&
+      # 前端構建
+      cd frontend && 
       npm install && 
       npm run build && 
       echo "前端構建完成，構建結果:" &&
-      ls -la frontend/dist/ &&
+      ls -la dist/ &&
       echo "複製前端文件到後端目錄" &&
-      mkdir -p backend/static &&
-      cp -rv frontend/dist/* backend/static/ &&
+      mkdir -p ../backend/static &&
+      cp -rv dist/* ../backend/static/ &&
       echo "確認複製結果:" &&
-      ls -la backend/static/ &&
-      cd .. && 
+      ls -la ../backend/static/ &&
+      cd ../backend && 
       pip install -r requirements.txt
     startCommand: >
-      cd super-idol/backend && 
+      cd backend && 
       echo "檢查靜態目錄:" &&
-      ls -la static/ || echo "靜態目錄不存在，創建應急頁面" &&
+      ls -la static/ || (echo "靜態目錄不存在，創建應急頁面" &&
       mkdir -p static &&
-      echo '<html><body><h1>Super Idol</h1><p>應用已成功啟動，如果看到此頁面表示靜態文件服務正常。</p></body></html>' > static/index.html &&
+      echo '<html><body><h1>Super Idol</h1><p>應用已成功啟動，如果看到此頁面表示靜態文件服務正常。</p></body></html>' > static/index.html) &&
       gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER
@@ -45,3 +52,5 @@ services:
         value: "https://super-idol.onrender.com"
       - key: LOG_LEVEL
         value: INFO
+      - key: RENDER
+        value: "true"
