@@ -56,7 +56,12 @@ services:
       ls -la static/ || (echo "靜態目錄不存在，創建應急頁面" &&
       mkdir -p static &&
       echo '<html><body><h1>Super Idol</h1><p>應用已成功啟動，靜態文件服務正常。</p></body></html>' > static/index.html) &&
+      echo "檢查環境變數:" &&
+      echo "SECRET_KEY存在: $(if [ -n \"$SECRET_KEY\" ]; then echo '是'; else echo '否'; fi)" &&
+      echo "JWT_SECRET_KEY存在: $(if [ -n \"$JWT_SECRET_KEY\" ]; then echo '是'; else echo '否'; fi)" &&
       echo "開始啟動Flask應用" &&
+      export SECRET_KEY=${SECRET_KEY:-"render-auto-generated-key"} &&
+      export JWT_SECRET_KEY=${JWT_SECRET_KEY:-"render-auto-generated-jwt-key"} &&
       gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER

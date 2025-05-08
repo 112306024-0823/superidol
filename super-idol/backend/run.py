@@ -35,6 +35,19 @@ def find_static_directory():
     logger.info(f"項目目錄: {project_dir}")
     logger.info(f"工作目錄: {os.getcwd()}")
     
+    # 記錄環境變數，不包含敏感信息
+    env_vars = {k: v for k, v in os.environ.items() 
+                if not any(s in k.lower() for s in ['secret', 'password', 'key'])}
+    logger.info(f"環境變數: {env_vars}")
+    
+    # 檢查關鍵環境變數是否存在
+    for key in ['FLASK_ENV', 'DB_HOST', 'DB_USER', 'DB_NAME']:
+        value = os.environ.get(key)
+        if value:
+            logger.info(f"環境變數 {key} 存在")
+        else:
+            logger.warning(f"環境變數 {key} 不存在")
+    
     # 嘗試可能的靜態目錄路徑，按優先級順序
     possible_paths = [
         os.path.join(backend_dir, 'static'),           # 後端靜態目錄
@@ -221,12 +234,29 @@ def static_info():
         if not any(s in k.lower() for s in ['secret', 'password', 'key']):
             env_vars[k] = v
     
+    # 收集Flask配置（過濾敏感信息）
+    flask_config = {}
+    for k, v in app.config.items():
+        if not any(s in k.upper() for s in ['SECRET', 'PASSWORD', 'KEY']):
+            flask_config[k] = str(v)
+    
+    # 系統信息
+    import sys
+    import platform
+    
     return jsonify({
         'app_static_folder': app.static_folder,
         'static_paths': paths_info,
         'environment': os.getenv('FLASK_ENV', 'development'),
         'database_host': app.config.get('MYSQL_HOST', 'not_set'),
-        'safe_environment_variables': env_vars
+        'safe_environment_variables': env_vars,
+        'flask_config': flask_config,
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'working_directory': os.getcwd(),
+        'render_env': os.environ.get('RENDER') == 'true',
+        'file_path': __file__,
+        'render_build_directory': os.environ.get('RENDER_BUILD_DIR', 'not_set')
     })
 
 # 前端路由處理
