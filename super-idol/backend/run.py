@@ -18,18 +18,29 @@ logger = logging.getLogger(__name__)
 
 # 檢查靜態文件目錄
 def check_static_directory():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    static_dir = os.path.join(base_dir, 'static')
+    # 修改為使用前端構建目錄
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # 上一級目錄(super-idol)
+    static_dir = os.path.join(base_dir, 'frontend', 'dist')
     
-    logger.info(f"檢查靜態目錄: {static_dir}")
+    logger.info(f"檢查前端構建目錄: {static_dir}")
     
     if not os.path.exists(static_dir):
-        logger.warning(f"靜態目錄不存在，嘗試創建: {static_dir}")
-        try:
-            os.makedirs(static_dir, exist_ok=True)
-        except Exception as e:
-            logger.error(f"創建靜態目錄失敗: {str(e)}")
-            return False
+        logger.warning(f"前端構建目錄不存在，嘗試使用備用路徑")
+        # 備用路徑 - backend/static
+        static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+        
+        if not os.path.exists(static_dir):
+            logger.warning(f"備用靜態目錄不存在，嘗試創建: {static_dir}")
+            try:
+                os.makedirs(static_dir, exist_ok=True)
+                # 創建一個簡單的測試頁面
+                index_html = os.path.join(static_dir, 'index.html')
+                with open(index_html, 'w') as f:
+                    f.write('<html><body><h1>Super Idol 測試頁面</h1><p>這是一個測試頁面，表示靜態文件服務正常工作，但找不到實際的前端構建文件。</p></body></html>')
+                logger.info(f"已創建測試頁面: {index_html}")
+            except Exception as e:
+                logger.error(f"創建靜態目錄失敗: {str(e)}")
+                return False, static_dir
     
     # 檢查index.html是否存在
     index_path = os.path.join(static_dir, 'index.html')
@@ -38,49 +49,48 @@ def check_static_directory():
         # 列出目錄內容以便調試
         try:
             files = glob.glob(os.path.join(static_dir, '*'))
-            logger.info(f"靜態目錄內容: {files}")
+            logger.info(f"目錄內容: {files}")
         except Exception as e:
             logger.error(f"無法列出目錄內容: {str(e)}")
-        return False
+        return False, static_dir
     
     logger.info(f"index.html找到: {index_path}")
-    return True
+    return True, static_dir
 
 # 創建Flask應用
-static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+from app import create_app
+
+# 獲取應用實例
+app = create_app()
+
+# 設置靜態文件目錄 - 使用檢查函數返回的路徑
+static_ok, static_folder = check_static_directory()
+app.static_folder = static_folder
 logger.info(f"靜態目錄設置為: {static_folder}")
-app = Flask(__name__, static_folder=static_folder)
-CORS(app)
-
-# 引入API路由
-from app.api import auth_bp, food_bp, exercise_bp, report_bp
-
-# 註冊所有藍圖
-app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(food_bp, url_prefix='/api/food')
-app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
-app.register_blueprint(report_bp, url_prefix='/api/report')
-
-# 檢查靜態目錄
-static_ok = check_static_directory()
 
 # 調試端點
 @app.route('/api/debug/static-info')
 def static_info():
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    static_dir = os.path.join(base_dir, 'static')
-    
     try:
-        files = glob.glob(os.path.join(static_dir, '*'))
+        files = glob.glob(os.path.join(app.static_folder, '*'))
         file_list = [os.path.basename(f) for f in files]
     except Exception as e:
         file_list = [f"錯誤: {str(e)}"]
     
+    # 安全過濾環境變數
+    env_vars = {}
+    for k, v in os.environ.items():
+        if 'secret' not in k.lower() and 'password' not in k.lower() and 'key' not in k.lower():
+            env_vars[k] = v
+    
     return jsonify({
-        'static_directory': static_dir,
-        'directory_exists': os.path.exists(static_dir),
+        'static_directory': app.static_folder,
+        'directory_exists': os.path.exists(app.static_folder),
         'files': file_list,
-        'app_static_folder': app.static_folder
+        'static_check_result': static_ok,
+        'environment': os.getenv('FLASK_ENV', 'development'),
+        'database_host': app.config.get('MYSQL_HOST', 'not_set'),
+        'safe_environment_variables': env_vars
     })
 
 # 前端路由處理
@@ -107,12 +117,9 @@ def serve(path):
             logger.error(f"提供靜態文件出錯: {str(e)}")
     
     # 默認返回index.html
-    logger.info("嘗試返回index.html")
+    logger.info(f"嘗試返回index.html，從目錄: {app.static_folder}")
     try:
-        if static_ok:
-            return send_from_directory(app.static_folder, 'index.html')
-        else:
-            return "錯誤: 靜態文件目錄檢查失敗，找不到index.html。請檢查部署日誌獲取更多信息。", 500
+        return send_from_directory(app.static_folder, 'index.html')
     except Exception as e:
         logger.error(f"提供index.html出錯: {str(e)}")
         return f"錯誤: 無法加載前端應用。詳細信息: {str(e)}", 500

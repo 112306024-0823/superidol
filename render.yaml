@@ -8,36 +8,23 @@ services:
       cd super-idol && npm install && npm run build && 
       echo "前端構建完成，檢查構建結果:" &&
       ls -la frontend/dist/ &&
-      mkdir -p backend/static && 
-      cp -rv frontend/dist/* backend/static/ && 
-      echo "靜態文件複製完成，確認目標目錄內容:" &&
-      ls -la backend/static/ &&
       cd .. && 
       pip install -r requirements.txt
     startCommand: >
-      echo "顯示工作目錄結構" &&
-      pwd && ls -la && 
-      echo "列出super-idol目錄內容" &&
-      ls -la super-idol/ &&
-      echo "嘗試直接創建一個測試頁面" &&
-      mkdir -p super-idol/backend/static &&
-      echo '<html><body><h1>Super Idol Test Page</h1><p>This is a test page created at startup time.</p></body></html>' > super-idol/backend/static/index.html &&
-      echo "確認測試頁面創建成功:" &&
-      ls -la super-idol/backend/static/ &&
       cd super-idol/backend && 
-      echo "啟動Flask應用" &&
+      python -c "import os; os.makedirs('static', exist_ok=True); open('static/index.html', 'w').write('<html><body><h1>靜態文件測試頁面</h1></body></html>')" &&
       gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER
-        sync: false
+        value: DBMS11302
       - key: DB_PASSWORD
-        sync: false
+        value: ilovedbms
       - key: DB_HOST
-        sync: false
+        value: superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com
       - key: DB_PORT
-        sync: false
+        value: 3306
       - key: DB_NAME
-        sync: false
+        value: superidol
       - key: JWT_SECRET_KEY
         generateValue: true
       - key: SECRET_KEY
