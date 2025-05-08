@@ -22,28 +22,51 @@ def find_static_directory():
     """尋找最佳的靜態文件目錄，按優先級：
     1. ./static (直接在當前目錄下的靜態目錄)
     2. ../frontend/dist (前端構建目錄)
-    3. /opt/render/project/src/backend/static (Render 環境下的絕對路徑)
-    4. /opt/render/project/src/frontend/dist (Render 環境下的絕對路徑)
+    3. 各種可能的 Render 環境下的絕對路徑
     """
     # 獲取當前文件目錄
     backend_dir = os.path.dirname(os.path.abspath(__file__))
     # 上一級目錄，即super-idol目錄
     project_dir = os.path.dirname(backend_dir)
     
+    # 記錄當前檔案和目錄資訊
+    logger.info(f"當前檔案路徑: {__file__}")
+    logger.info(f"後端目錄: {backend_dir}")
+    logger.info(f"項目目錄: {project_dir}")
+    logger.info(f"工作目錄: {os.getcwd()}")
+    
     # 嘗試可能的靜態目錄路徑，按優先級順序
     possible_paths = [
-        os.path.join(backend_dir, 'static'),            # 後端靜態目錄
+        os.path.join(backend_dir, 'static'),           # 後端靜態目錄
         os.path.join(project_dir, 'frontend', 'dist'),  # 前端構建目錄
     ]
     
-    # 為 Render 環境添加絕對路徑
+    # 嘗試各種可能的 Render 路徑
+    render_base_paths = [
+        '/opt/render/project/src',             # 基本 Render 路徑
+        '/opt/render/project'                  # 備用 Render 路徑
+    ]
+    
+    # 嘗試可能的專案結構
+    project_structures = [
+        ['backend', 'static'],                 # /backend/static
+        ['super-idol', 'backend', 'static'],   # /super-idol/backend/static
+        ['frontend', 'dist'],                  # /frontend/dist
+        ['super-idol', 'frontend', 'dist']     # /super-idol/frontend/dist
+    ]
+    
+    # 為 Render 環境添加所有可能的絕對路徑
     if os.environ.get('RENDER') == 'true':
-        render_paths = [
-            '/opt/render/project/src/backend/static',
-            '/opt/render/project/src/frontend/dist'
-        ]
+        render_paths = []
+        for base_path in render_base_paths:
+            for structure in project_structures:
+                path = os.path.join(base_path, *structure)
+                render_paths.append(path)
         # 在最高優先級添加這些路徑
         possible_paths = render_paths + possible_paths
+    
+    # 記錄所有要檢查的路徑
+    logger.info(f"將檢查以下路徑: {possible_paths}")
     
     found_path = None
     
@@ -52,6 +75,7 @@ def find_static_directory():
         logger.info(f"檢查靜態目錄: {path}")
         
         if os.path.exists(path):
+            logger.info(f"目錄存在: {path}")
             # 檢查index.html是否存在
             index_path = os.path.join(path, 'index.html')
             if os.path.exists(index_path) and os.path.isfile(index_path):
@@ -59,7 +83,12 @@ def find_static_directory():
                 found_path = path
                 break
             else:
-                logger.warning(f"目錄存在但沒有index.html: {path}")
+                try:
+                    # 檢查目錄內有哪些文件
+                    files = os.listdir(path)
+                    logger.warning(f"目錄存在但沒有index.html: {path}，內容: {files}")
+                except Exception as e:
+                    logger.warning(f"讀取目錄內容失敗: {path}, 錯誤: {str(e)}")
         else:
             logger.warning(f"目錄不存在: {path}")
     
