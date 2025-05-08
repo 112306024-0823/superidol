@@ -35,6 +35,8 @@ class Config:
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
+    # 開發環境 CORS 設置 - 添加前端開發伺服器地址
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173').split(',')
 
 class TestingConfig(Config):
     """Testing configuration."""
