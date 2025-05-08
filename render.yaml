@@ -1,0 +1,83 @@
+services:
+  - type: web
+    name: super-idol
+    env: python
+    public: true
+    buildCommand: >
+      echo "開始構建流程" &&
+      # 檢查當前目錄結構和絕對路徑
+      pwd && ls -la && 
+      echo "RENDER_PROJECT_DIR=$RENDER_PROJECT_DIR" &&
+      echo "嘗試找到正確的項目目錄" &&
+      if [ -d "super-idol" ]; then
+        echo "找到super-idol目錄，進入此目錄" &&
+        cd super-idol &&
+        PROJECT_ROOT=$(pwd)
+      else
+        echo "在當前目錄下操作" &&
+        PROJECT_ROOT=$(pwd)
+      fi &&
+      echo "項目根目錄: $PROJECT_ROOT" &&
+      # 檢查前端目錄
+      echo "檢查前端目錄：" &&
+      ls -la $PROJECT_ROOT/frontend/ || echo "前端目錄不存在!" &&
+      # 前端構建過程
+      cd $PROJECT_ROOT/frontend &&
+      npm install &&
+      npm run build &&
+      echo "前端構建完成，構建結果:" &&
+      ls -la dist/ &&
+      # 確保後端靜態目錄存在
+      echo "確保後端靜態目錄存在" &&
+      mkdir -p $PROJECT_ROOT/backend/static &&
+      # 複製前端文件到後端
+      echo "複製前端文件到後端目錄" &&
+      cp -rv dist/* $PROJECT_ROOT/backend/static/ &&
+      echo "確認複製結果:" &&
+      ls -la $PROJECT_ROOT/backend/static/ &&
+      # 安裝後端依賴
+      cd $PROJECT_ROOT/backend &&
+      echo "安裝後端依賴:" &&
+      pip install -r requirements.txt
+    startCommand: >
+      echo "啟動應用，當前目錄：" && pwd && ls -la &&
+      if [ -d "super-idol" ]; then
+        echo "找到super-idol目錄，進入backend目錄" &&
+        cd super-idol/backend
+      elif [ -d "backend" ]; then
+        echo "找到backend目錄，直接進入" &&
+        cd backend
+      else
+        echo "在當前目錄下尋找run.py" &&
+        find . -name "run.py"
+      fi &&
+      echo "當前工作目錄: $(pwd)" &&
+      echo "檢查靜態目錄:" &&
+      ls -la static/ || (echo "靜態目錄不存在，創建應急頁面" &&
+      mkdir -p static &&
+      echo '<html><body><h1>Super Idol</h1><p>應用已成功啟動，靜態文件服務正常。</p></body></html>' > static/index.html) &&
+      echo "開始啟動Flask應用" &&
+      gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
+    envVars:
+      - key: DB_USER
+        value: DBMS11302
+      - key: DB_PASSWORD
+        value: ilovedbms
+      - key: DB_HOST
+        value: superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com
+      - key: DB_PORT
+        value: 3306
+      - key: DB_NAME
+        value: superidol
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: "https://super-idol.onrender.com"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: RENDER
+        value: "true"

@@ -3,14 +3,12 @@
     <header v-if="isAuthenticated && !isAuthPage">
       <Header />
     </header>
-    <div class="main-container" :class="{ 'with-sidebar': isAuthenticated && !isAuthPage }">
-      <aside v-if="isAuthenticated && !isAuthPage" class="sidebar">
-        <Sidebar />
-      </aside>
+    <div class="main-container">
       <main class="content">
         <router-view />
       </main>
     </div>
+    <Footer />
   </div>
 </template>
 
@@ -19,13 +17,13 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './store/auth'
 import Header from './components/layout/Header.vue'
-import Sidebar from './components/layout/Sidebar.vue'
+import Footer from './components/layout/Footer.vue'
 
 export default {
   name: 'App',
   components: {
     Header,
-    Sidebar
+    Footer
   },
   setup() {
     const route = useRoute()
@@ -49,6 +47,30 @@ export default {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  font-family: 'Noto Sans TC', 'Poppins', 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: 0.015em;
+}
+
+:root {
+  --primary-color: #ffaa55;
+  --primary-darker: #f89b3c;
+  --primary-lighter: #ffd0a0;
+  --text-color: #333333;
+  --text-light: #666666;
+  --bg-light: #f8f9fa;
+  --border-color: #e0e0e0;
+  --font-tc: 'Noto Sans TC', sans-serif;
+  --font-en: 'Poppins', 'Nunito Sans', sans-serif;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background-color: var(--bg-light);
+  color: var(--text-color);
 }
 
 .main-container {
@@ -56,38 +78,31 @@ export default {
   flex: 1;
 }
 
-.with-sidebar {
-  padding-left: 240px;
-}
-
-.sidebar {
-  position: fixed;
-  width: 240px;
-  left: 0;
-  top: 64px;
-  bottom: 0;
-  background-color: var(--card-bg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-}
-
 .content {
   flex: 1;
-  padding-top: 64px;
+  padding-top: 84px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-left: 32px;
+  padding-right: 32px;
+  padding-bottom: 40px;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
-  .with-sidebar {
-    padding-left: 0;
+  .content {
+    padding-left: 24px;
+    padding-right: 24px;
+    padding-top: 76px;
   }
-  
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 72px;
   }
 }
 </style> 
