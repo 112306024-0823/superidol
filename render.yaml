@@ -4,19 +4,28 @@ services:
     env: python
     public: true
     buildCommand: >
+      echo "開始構建過程" &&
       cd super-idol && npm install && npm run build && 
+      echo "前端構建完成，檢查構建結果:" &&
       ls -la frontend/dist/ &&
       mkdir -p backend/static && 
       cp -rv frontend/dist/* backend/static/ && 
+      echo "靜態文件複製完成，確認目標目錄內容:" &&
       ls -la backend/static/ &&
       cd .. && 
       pip install -r requirements.txt
     startCommand: >
-      cd super-idol && 
-      mkdir -p backend/static && 
-      cp -rv frontend/dist/* backend/static/ || echo "複製文件失敗，可能原因是前端尚未構建" && 
-      ls -la backend/static/ && 
-      cd backend && 
+      echo "顯示工作目錄結構" &&
+      pwd && ls -la && 
+      echo "列出super-idol目錄內容" &&
+      ls -la super-idol/ &&
+      echo "嘗試直接創建一個測試頁面" &&
+      mkdir -p super-idol/backend/static &&
+      echo '<html><body><h1>Super Idol Test Page</h1><p>This is a test page created at startup time.</p></body></html>' > super-idol/backend/static/index.html &&
+      echo "確認測試頁面創建成功:" &&
+      ls -la super-idol/backend/static/ &&
+      cd super-idol/backend && 
+      echo "啟動Flask應用" &&
       gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER
@@ -31,3 +40,11 @@ services:
         sync: false
       - key: JWT_SECRET_KEY
         generateValue: true
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: "https://super-idol.onrender.com"
+      - key: LOG_LEVEL
+        value: INFO
