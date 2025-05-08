@@ -1,3 +1,7 @@
+"""
+Configuration settings for the application.
+"""
+
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
@@ -5,31 +9,43 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    """基礎配置"""
-    SECRET_KEY = os.getenv('SECRET_KEY', 'dev')
-    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'dev')
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
+    """Base configuration."""
+    # Flask settings
+    SECRET_KEY = 'dev-key-please-change-in-production'
+    DEBUG = False
     
-    # 數據庫配置
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///super_idol.db')
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    # Database settings
+    MYSQL_HOST = 'superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com'
+    MYSQL_PORT = 3306
+    MYSQL_USER = 'DBMS11302'
+    MYSQL_PASSWORD = 'ilovedbms'
+    MYSQL_DB = 'superidol'
+    
+    # JWT settings
+    JWT_SECRET_KEY = 'jwt-secret-key-please-change-in-production'
+    JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hour
+    
+    # API settings
+    API_TITLE = 'Super Idol API'
+    API_VERSION = 'v1'
     
     # CORS 配置
     CORS_ORIGINS = ['http://localhost:3000']  # 前端開發服務器
 
 class DevelopmentConfig(Config):
-    """開發環境配置"""
+    """Development configuration."""
     DEBUG = True
 
+class TestingConfig(Config):
+    """Testing configuration."""
+    DEBUG = True
+    TESTING = True
+    MYSQL_DB = 'super_idol_test_db'
+
 class ProductionConfig(Config):
-    """生產環境配置"""
+    """Production configuration."""
     DEBUG = False
+    # In production, these values should be set through environment variables
     
     # 生產環境特定的配置
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',')
-
-class TestingConfig(Config):
-    """測試環境配置"""
-    TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:' 
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', '').split(',') 
