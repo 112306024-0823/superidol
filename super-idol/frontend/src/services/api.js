@@ -57,4 +57,7 @@ api.interceptors.response.use(
     
     return Promise.reject(error)
   }
-) 
+)
+
+// 添加默認導出，同時支持命名導入和默認導入
+export default api; 

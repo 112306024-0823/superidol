@@ -4,15 +4,25 @@ services:
     env: python
     public: true
     buildCommand: >
-      echo "開始構建過程" &&
-      cd super-idol && npm install && npm run build && 
-      echo "前端構建完成，檢查構建結果:" &&
+      echo "開始構建流程" &&
+      cd super-idol && 
+      npm install && 
+      npm run build && 
+      echo "前端構建完成，構建結果:" &&
       ls -la frontend/dist/ &&
+      echo "複製前端文件到後端目錄" &&
+      mkdir -p backend/static &&
+      cp -rv frontend/dist/* backend/static/ &&
+      echo "確認複製結果:" &&
+      ls -la backend/static/ &&
       cd .. && 
       pip install -r requirements.txt
     startCommand: >
       cd super-idol/backend && 
-      python -c "import os; os.makedirs('static', exist_ok=True); open('static/index.html', 'w').write('<html><body><h1>靜態文件測試頁面</h1></body></html>')" &&
+      echo "檢查靜態目錄:" &&
+      ls -la static/ || echo "靜態目錄不存在，創建應急頁面" &&
+      mkdir -p static &&
+      echo '<html><body><h1>Super Idol</h1><p>應用已成功啟動，如果看到此頁面表示靜態文件服務正常。</p></body></html>' > static/index.html &&
       gunicorn --bind 0.0.0.0:$PORT --log-level debug run:app
     envVars:
       - key: DB_USER
