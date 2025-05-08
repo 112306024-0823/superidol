@@ -2,9 +2,39 @@
 Application entry point.
 """
 
-from app import create_app
+from flask import Flask, send_from_directory
+from flask_cors import CORS
+import os
+from dotenv import load_dotenv
 
-app = create_app()
+# 載入環境變數
+load_dotenv()
+
+# 創建Flask應用
+app = Flask(__name__, static_folder='static')
+CORS(app)
+
+# 引入API路由
+from app.api import api_bp
+app.register_blueprint(api_bp, url_prefix='/api')
+
+# 前端路由處理
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path.startswith('api/'):
+        # API請求由Flask處理
+        return app.response_class(status=404)
+    
+    if path and path != '' and not path.startswith('api'):
+        # 嘗試從靜態文件夾提供文件
+        try:
+            return send_from_directory(app.static_folder, path)
+        except:
+            pass
+    # 默認返回index.html
+    return send_from_directory(app.static_folder, 'index.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port) 

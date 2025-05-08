@@ -1,8 +1,12 @@
 import axios from 'axios'
 
+const baseURL = import.meta.env.PROD 
+    ? '/api'  // 生產環境直接使用相對路徑
+    : 'http://localhost:5000/api';  // 開發環境
+
 // 創建 axios 實例
-const api = axios.create({
-  baseURL: '/api', // 代理設置必須對應此基礎URL
+export const api = axios.create({
+  baseURL,
   timeout: 10000, // 請求超時時間 10 秒
   headers: {
     'Content-Type': 'application/json',
@@ -53,6 +57,4 @@ api.interceptors.response.use(
     
     return Promise.reject(error)
   }
-)
-
-export default api 
+) 
