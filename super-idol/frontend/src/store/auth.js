@@ -20,8 +20,8 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        // 呼叫後端 API 進行登入，確保路徑正確
-        const response = await api.post('/auth/login', credentials)
+        // 修正API路徑，添加/api前綴
+        const response = await api.post('/api/auth/login', credentials)
         
         // 儲存 token 到 localStorage
         const token = response.data.access_token
@@ -33,7 +33,8 @@ export const useAuthStore = defineStore('auth', {
         
         return response.data
       } catch (error) {
-        this.error = error.response?.data?.message || '登入失敗，請檢查您的憑證'
+        console.error('登入錯誤完整信息:', error);
+        this.error = error.response?.data?.error || '登入失敗，請檢查您的憑證'
         throw error
       } finally {
         this.isLoading = false
@@ -45,9 +46,9 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        // 呼叫後端 API 進行註冊，確保路徑正確
+        // 修正API路徑，添加/api前綴
         console.log('正在發送註冊請求:', userData);
-        const response = await api.post('/auth/signup', userData)
+        const response = await api.post('/api/auth/signup', userData)
         
         // 儲存 token 到 localStorage
         const token = response.data.access_token
@@ -59,7 +60,8 @@ export const useAuthStore = defineStore('auth', {
         
         return response.data
       } catch (error) {
-        this.error = error.response?.data?.message || '註冊失敗，請稍後再試'
+        console.error('註冊錯誤完整信息:', error);
+        this.error = error.response?.data?.error || '註冊失敗，請稍後再試'
         throw error
       } finally {
         this.isLoading = false
@@ -70,7 +72,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         // 可選：通知後端使 token 失效
         if (this.token) {
-          await api.post('/auth/logout')
+          await api.post('/api/auth/logout')
         }
       } catch (error) {
         console.error('登出 API 請求失敗:', error)
@@ -88,7 +90,7 @@ export const useAuthStore = defineStore('auth', {
       this.isLoading = true
       
       try {
-        const response = await api.get('/auth/user')
+        const response = await api.get('/api/auth/user')
         this.user = response.data
         return response.data
       } catch (error) {
@@ -109,11 +111,11 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        const response = await api.put('/auth/profile', profileData)
+        const response = await api.put('/api/auth/profile', profileData)
         this.user = { ...this.user, ...response.data }
         return response.data
       } catch (error) {
-        this.error = error.response?.data?.message || '更新個人資料失敗'
+        this.error = error.response?.data?.error || '更新個人資料失敗'
         throw error
       } finally {
         this.isLoading = false

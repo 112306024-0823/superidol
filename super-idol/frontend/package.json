@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "vite",
+    "dev:all": "node ../scripts/dev.js",
     "build": "vite build",
     "serve": "vite preview",
-    "lint": "eslint --ext .js,.vue --ignore-path .gitignore --fix src"
+    "lint": "eslint --ext .js,.vue --ignore-path .gitignore --fix src",
+    "setup": "node ../scripts/setup.js",
+    "deploy": "node ../scripts/deploy.js"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.1",

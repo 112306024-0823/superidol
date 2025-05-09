@@ -35,6 +35,19 @@ def find_static_directory():
     logger.info(f"項目目錄: {project_dir}")
     logger.info(f"工作目錄: {os.getcwd()}")
     
+    # 記錄環境變數，不包含敏感信息
+    env_vars = {k: v for k, v in os.environ.items() 
+                if not any(s in k.lower() for s in ['secret', 'password', 'key'])}
+    logger.info(f"環境變數: {env_vars}")
+    
+    # 檢查關鍵環境變數是否存在
+    for key in ['FLASK_ENV', 'DB_HOST', 'DB_USER', 'DB_NAME']:
+        value = os.environ.get(key)
+        if value:
+            logger.info(f"環境變數 {key} 存在")
+        else:
+            logger.warning(f"環境變數 {key} 不存在")
+    
     # 嘗試可能的靜態目錄路徑，按優先級順序
     possible_paths = [
         os.path.join(backend_dir, 'static'),           # 後端靜態目錄
@@ -44,7 +57,8 @@ def find_static_directory():
     # 嘗試各種可能的 Render 路徑
     render_base_paths = [
         '/opt/render/project/src',             # 基本 Render 路徑
-        '/opt/render/project'                  # 備用 Render 路徑
+        '/opt/render/project',                  # 備用 Render 路徑
+        '/opt/render'                          # 更上層的 Render 路徑
     ]
     
     # 嘗試可能的專案結構
@@ -52,18 +66,48 @@ def find_static_directory():
         ['backend', 'static'],                 # /backend/static
         ['super-idol', 'backend', 'static'],   # /super-idol/backend/static
         ['frontend', 'dist'],                  # /frontend/dist
-        ['super-idol', 'frontend', 'dist']     # /super-idol/frontend/dist
+        ['super-idol', 'frontend', 'dist'],    # /super-idol/frontend/dist
+        ['static'],                            # /static - 直接在根目錄
+        ['dist']                               # /dist - 直接在根目錄
     ]
     
     # 為 Render 環境添加所有可能的絕對路徑
     if os.environ.get('RENDER') == 'true':
         render_paths = []
         for base_path in render_base_paths:
+            # 檢查是否有 super-idol 目錄
+            if os.path.exists(os.path.join(base_path, 'super-idol')):
+                logger.info(f"找到 super-idol 目錄: {os.path.join(base_path, 'super-idol')}")
+            
+            # 先檢查基本路徑下的靜態目錄
+            if os.path.exists(os.path.join(base_path, 'static')):
+                render_paths.append(os.path.join(base_path, 'static'))
+            
+            # 加入各種可能的組合
             for structure in project_structures:
                 path = os.path.join(base_path, *structure)
                 render_paths.append(path)
+        
+        # 加入當前工作目錄相關路徑
+        cwd = os.getcwd()
+        render_paths.append(os.path.join(cwd, 'static'))
+        
         # 在最高優先級添加這些路徑
         possible_paths = render_paths + possible_paths
+        
+        # 嘗試直接在目錄下搜尋 dist 或 static 文件夾
+        for base_path in render_base_paths:
+            if os.path.exists(base_path):
+                for root, dirs, files in os.walk(base_path):
+                    if 'dist' in dirs:
+                        possible_paths.insert(0, os.path.join(root, 'dist'))
+                        logger.info(f"搜尋到 dist 目錄: {os.path.join(root, 'dist')}")
+                    if 'static' in dirs:
+                        possible_paths.insert(0, os.path.join(root, 'static'))
+                        logger.info(f"搜尋到 static 目錄: {os.path.join(root, 'static')}")
+                    # 限制搜尋深度，避免過度遞歸
+                    if root.count(os.sep) - base_path.count(os.sep) > 3:
+                        break
     
     # 記錄所有要檢查的路徑
     logger.info(f"將檢查以下路徑: {possible_paths}")
@@ -101,7 +145,7 @@ def find_static_directory():
             os.makedirs(static_dir, exist_ok=True)
             index_html = os.path.join(static_dir, 'index.html')
             
-            # 創建簡單的測試頁面
+            # 創建更完整的應急前端頁面
             with open(index_html, 'w') as f:
                 f.write('''
                 <!DOCTYPE html>
@@ -109,24 +153,66 @@ def find_static_directory():
                 <head>
                     <meta charset="UTF-8">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Super Idol 測試頁面</title>
+                    <title>Super Idol 健康管理系統</title>
                     <style>
-                        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-                        h1 { color: #333; }
-                        .error { color: #e74c3c; }
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            max-width: 800px; 
+                            margin: 0 auto; 
+                            padding: 20px; 
+                            background-color: #f9f9f9;
+                        }
+                        h1 { 
+                            color: #2c3e50; 
+                            text-align: center;
+                            border-bottom: 2px solid #3498db;
+                            padding-bottom: 10px;
+                        }
+                        .card { 
+                            background-color: white;
+                            padding: 20px; 
+                            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+                            margin: 20px 0; 
+                            border-radius: A0px;
+                        }
                         .info { color: #3498db; }
+                        .error { color: #e74c3c; }
+                        .btn {
+                            display: inline-block;
+                            padding: 10px 15px;
+                            background: #3498db;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 4px;
+                            margin-top: 15px;
+                        }
+                        .center {
+                            text-align: center;
+                        }
                     </style>
                 </head>
                 <body>
-                    <h1>Super Idol 應用啟動成功</h1>
-                    <p class="info">API 服務正常運行，但找不到前端文件。</p>
-                    <p>可能的原因:</p>
-                    <ul>
-                        <li>前端尚未構建</li>
-                        <li>前端構建文件未複製到靜態目錄</li>
-                        <li>靜態文件路徑配置有誤</li>
-                    </ul>
-                    <p>請檢查部署日誌或訪問 <a href="/api/debug/static-info">/api/debug/static-info</a> 獲取更多信息。</p>
+                    <h1>Super Idol 健康管理系統</h1>
+                    <div class="card">
+                        <h2>API 服務正常運行</h2>
+                        <p>後端系統已成功啟動，但找不到前端靜態文件。</p>
+                        <p>這是自動生成的應急頁面。您可以訪問以下端點：</p>
+                        <ul>
+                            <li><a href="/api/auth/register">用戶註冊</a></li>
+                            <li><a href="/api/auth/login">用戶登入</a></li>
+                            <li><a href="/api/food">飲食記錄</a></li>
+                            <li><a href="/api/exercise">運動記錄</a></li>
+                            <li><a href="/api/report">健康報告</a></li>
+                        </ul>
+                        <div class="center">
+                            <a href="/api/debug/static-info" class="btn">查看系統狀態</a>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>開發資訊</h3>
+                        <p>要完整部署前端，請將 frontend 目錄添加到 Git 倉庫中。</p>
+                        <p>或者可以使用 Render.com 上的靜態網站服務單獨部署前端。</p>
+                    </div>
                 </body>
                 </html>
                 ''')
@@ -221,12 +307,29 @@ def static_info():
         if not any(s in k.lower() for s in ['secret', 'password', 'key']):
             env_vars[k] = v
     
+    # 收集Flask配置（過濾敏感信息）
+    flask_config = {}
+    for k, v in app.config.items():
+        if not any(s in k.upper() for s in ['SECRET', 'PASSWORD', 'KEY']):
+            flask_config[k] = str(v)
+    
+    # 系統信息
+    import sys
+    import platform
+    
     return jsonify({
         'app_static_folder': app.static_folder,
         'static_paths': paths_info,
         'environment': os.getenv('FLASK_ENV', 'development'),
         'database_host': app.config.get('MYSQL_HOST', 'not_set'),
-        'safe_environment_variables': env_vars
+        'safe_environment_variables': env_vars,
+        'flask_config': flask_config,
+        'python_version': sys.version,
+        'platform': platform.platform(),
+        'working_directory': os.getcwd(),
+        'render_env': os.environ.get('RENDER') == 'true',
+        'file_path': __file__,
+        'render_build_directory': os.environ.get('RENDER_BUILD_DIR', 'not_set')
     })
 
 # 前端路由處理
