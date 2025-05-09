@@ -4,6 +4,7 @@ from datetime import datetime
 from ..database.models import FoodItem
 from ..extensions import db
 from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
+from app.db import get_db_connection
 
 class FoodService:
     @staticmethod
@@ -37,4 +38,72 @@ class FoodService:
     def delete_food(food: FoodItem) -> None:
         """刪除食物"""
         db.session.delete(food)
-        db.session.commit() 
+        db.session.commit()
+
+def search_food(filters):
+    """
+    Search for food items based on filters.
+    
+    Args:
+        filters (dict): Search filters
+        
+    Returns:
+        list: Matching food items
+    """
+    # TODO: Implement food search logic
+    return []
+
+def add_food_record(user_id, food_data):
+    """
+    Add a food consumption record.
+    
+    Args:
+        user_id (int): User ID
+        food_data (dict): Food record data
+        
+    Returns:
+        dict: Result of the operation
+    """
+    # TODO: Implement food record creation
+    return {}
+
+def get_user_favorites(user_id):
+    """
+    Get user's favorite foods.
+    
+    Args:
+        user_id (int): User ID
+        
+    Returns:
+        list: User's favorite foods
+    """
+    # TODO: Implement favorites retrieval
+    return []
+
+def add_to_favorites(user_id, food_id):
+    """
+    Add a food to user's favorites.
+    
+    Args:
+        user_id (int): User ID
+        food_id (int): Food ID
+        
+    Returns:
+        dict: Result of the operation
+    """
+    # TODO: Implement add to favorites
+    return {}
+
+def remove_from_favorites(user_id, food_id):
+    """
+    Remove a food from user's favorites.
+    
+    Args:
+        user_id (int): User ID
+        food_id (int): Food ID
+        
+    Returns:
+        dict: Result of the operation
+    """
+    # TODO: Implement remove from favorites
+    return {} 

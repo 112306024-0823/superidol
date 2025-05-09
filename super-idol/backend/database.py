@@ -98,7 +98,7 @@ if __name__ == "__main__":
         # 測試 engine 連接
         with engine.connect() as connection:
             result = connection.execute(text("SELECT 1"))
-            print("✓ Engine connection successful!")
+            print(" Engine connection successful!")
         
         # 測試 session 連接
         db = next(get_db())
@@ -112,3 +112,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nConnection test failed: {str(e)}")
         raise 
+    #測試

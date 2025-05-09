@@ -1,3 +1,5 @@
+#把跟「使用者認證／身分驗證」和「資料庫連線」有關的共用邏輯統一放進來
+#讓 API 四處都能import
 from functools import lru_cache
 from typing import Generator
 from flask import current_app

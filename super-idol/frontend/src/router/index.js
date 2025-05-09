@@ -1,50 +1,104 @@
-/* 
-    檔案：index.js
-    用途：路由配置
-    功能：
-    - 定義應用程式的路由
-    - 處理路由導航
-*/
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router'
+import Dashboard from '../pages/Dashboard.vue'
+import Login from '../pages/auth/Login.vue'
+import Register from '../pages/auth/Register.vue'
+import BasicInfo from '../pages/profile/BasicInfo.vue'
+import MyFavorite from '../pages/profile/MyFavorite.vue'
+import Preferences from '../pages/profile/Preferences.vue'
+import FoodSearch from '../pages/food/FoodSearch.vue'
+import FoodRecord from '../pages/food/FoodRecord.vue'
+import ExerciseRecord from '../pages/exercise/ExerciseRecord.vue'
+import WeeklyReport from '../pages/reports/WeeklyReport.vue'
+import ApiTest from '../pages/ApiTest.vue'
 
 const routes = [
-    {
-        path: '/',
-        name: 'home',
-        component: () => import('@/pages/home/index.html')
-    },
-    {
-        path: '/login',
-        name: 'login',
-        component: () => import('@/pages/login/index.html')
-    },
-    {
-        path: '/register',
-        name: 'register',
-        component: () => import('@/pages/register/index.html')
-    },
-    {
-        path: '/user_profile',
-        name: 'user_profile',
-        component: () => import('@/pages/user_profile/index.html'),
-        meta: { requiresAuth: true }
-    }
-];
+  {
+    path: '/',
+    redirect: '/dashboard'
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/api-test',
+    name: 'ApiTest',
+    component: ApiTest,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile/basic-info',
+    name: 'BasicInfo',
+    component: BasicInfo,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile/favorites',
+    name: 'MyFavorite',
+    component: MyFavorite,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile/preferences',
+    name: 'Preferences',
+    component: Preferences,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/food/search',
+    name: 'FoodSearch',
+    component: FoodSearch,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/food/record',
+    name: 'FoodRecord',
+    component: FoodRecord,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/exercise/record',
+    name: 'ExerciseRecord',
+    component: ExerciseRecord,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/reports/weekly',
+    name: 'WeeklyReport',
+    component: WeeklyReport,
+    meta: { requiresAuth: true }
+  }
+]
 
 const router = createRouter({
-    history: createWebHistory(),
-    routes
-});
+  history: createWebHistory(),
+  routes
+})
 
-// 路由守衛
+// 導航守衛
 router.beforeEach((to, from, next) => {
-    const isAuthenticated = localStorage.getItem('token');
-    
-    if (to.meta.requiresAuth && !isAuthenticated) {
-        next('/login');
-    } else {
-        next();
-    }
-});
+  const isAuthenticated = !!localStorage.getItem('token')
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
 
-export default router; 
+  if (requiresAuth && !isAuthenticated) {
+    next('/login')
+  } else {
+    next()
+  }
+})
+
+export default router 

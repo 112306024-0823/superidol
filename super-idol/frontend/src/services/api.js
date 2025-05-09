@@ -1,105 +1,63 @@
-/* 
-    檔案：api.js
-    用途：API 服務
-    功能：
-    - 封裝所有 API 請求
-    - 處理請求錯誤
-    - 管理認證狀態
-*/
-import axios from 'axios';
+import axios from 'axios'
 
-const api = axios.create({
-    baseURL: process.env.VUE_APP_API_URL,
-    headers: {
-        'Content-Type': 'application/json'
-    }
-});
+const baseURL = import.meta.env.PROD 
+    ? '/api'  // 生產環境直接使用相對路徑
+    : 'http://localhost:5000';  // 開發環境 - 移除了 /api 因為後端已經包含在路由中
 
-// 請求攔截器
+// 創建 axios 實例
+export const api = axios.create({
+  baseURL,
+  timeout: 10000, // 請求超時時間 10 秒
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  }
+})
+
+// 打印詳細的請求信息以便調試
 api.interceptors.request.use(
-    config => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    error => {
-        return Promise.reject(error);
+  (config) => {
+    console.log(`API請求: ${config.method.toUpperCase()} ${config.baseURL}${config.url}`, config.data || {});
+    const token = localStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
-);
+    return config
+  },
+  (error) => {
+    console.error('請求錯誤:', error);
+    return Promise.reject(error)
+  }
+)
 
-// 響應攔截器
+// 響應攔截器 - 處理常見錯誤
 api.interceptors.response.use(
-    response => response,
-    error => {
-        if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
+  (response) => {
+    console.log(`API回應 [${response.status}]:`, response.data);
+    return response
+  },
+  (error) => {
+    console.error('回應錯誤詳情:', error.response?.data || error.message);
+    const { response } = error
+    
+    // 未驗證 (401) - 清除 token 並重新導向到登入頁面
+    if (response && response.status === 401) {
+      localStorage.removeItem('token')
+      // 避免在登入頁面時重新導向
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login'
+      }
     }
-);
-
-export const userAPI = {
-    // 用戶認證
-    login: async (credentials) => {
-        const response = await api.post('/auth/login', credentials);
-        return response.data;
-    },
     
-    register: async (userData) => {
-        const response = await api.post('/auth/register', userData);
-        return response.data;
-    },
-    
-    // 用戶資料
-    getProfile: async () => {
-        const response = await api.get('/user/profile');
-        return response.data;
-    },
-    
-    updateProfile: async (profileData) => {
-        const response = await api.put('/user/profile', profileData);
-        return response.data;
-    },
-    
-    changePassword: async (passwordData) => {
-        const response = await api.put('/user/password', passwordData);
-        return response.data;
+    // 伺服器錯誤 (500) - 通用錯誤處理
+    if (response && response.status >= 500) {
+      console.error('服務器錯誤:', error)
+      // 可以在這裡顯示通用錯誤提示
     }
-};
-
-export const foodAPI = {
-    // 食物相關 API
-    search: async (query) => {
-        const response = await api.get('/food/search', { params: query });
-        return response.data;
-    },
     
-    getDetails: async (id) => {
-        const response = await api.get(`/food/${id}`);
-        return response.data;
-    }
-};
+    return Promise.reject(error)
+  }
+)
 
-export const reportAPI = {
-    // 報告相關 API
-    getDailyReport: async (date) => {
-        const response = await api.get('/report/daily', { params: { date } });
-        return response.data;
-    },
-    
-    getWeeklyReport: async (startDate) => {
-        const response = await api.get('/report/weekly', { params: { startDate } });
-        return response.data;
-    },
-    
-    getMonthlyReport: async (month) => {
-        const response = await api.get('/report/monthly', { params: { month } });
-        return response.data;
-    }
-};
-
+// 添加默認導出，同時支持命名導入和默認導入
 export default api; 
