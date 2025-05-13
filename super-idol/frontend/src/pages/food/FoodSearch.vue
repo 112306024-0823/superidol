@@ -4,13 +4,14 @@
       <h1 class="page-title">食物搜尋</h1>
 
       <!-- 搜尋表單 -->
-      <div class="form-container">
+      <div class="form-container" @keydown.enter="handleSearch">
         <!-- 第一欄 -->
         <div class="form-col">
           <div class="form-group">
             <label>價格</label>
             <input type="number" class="bar_short" v-model="filters.priceMin" /> ~
             <input type="number" class="bar_short" v-model="filters.priceMax" />
+            <span>元</span>
           </div>
           <div class="form-group">
             <label>熱量</label>
@@ -36,12 +37,14 @@
         <div class="form-col radio-col">
           <div class="form-group">
             <label>
-              <input type="radio" name="type" value="單點" v-model="filters.type" /> 單點
+              <input type="radio" name="type" value="單點" :checked="filters.type === '單點'"
+              @click="toggleType('單點')" /> 單點
             </label>
             <label>
-              <input type="radio" name="type" value="套餐" v-model="filters.type" /> 套餐
+              <input type="radio" name="type" :checked="filters.type === '套餐'"
+              @click="toggleType('套餐')" /> 套餐
             </label>
-            <button type="button" @click="handleSearch">Search</button>
+            <button type="button" @click="handleSearch">搜尋</button>
           </div>
         </div>
       </div>
@@ -97,6 +100,29 @@
       <div v-if="isLoading" class="loading-state">
         <p>載入中...</p>
       </div>
+
+      <!-- Modal -->
+      <div v-if="showModal" class="modal-overlay">
+        <div class="modal">
+          <button class="close-button" @click="closeModal">&times;</button>
+          <div class="modal-row"><strong>餐點類型</strong></div>
+          <div class="modal-row">
+            <label><input type="radio" value="早餐" v-model="selectedMealType" /> 早餐</label>
+            <label><input type="radio" value="中餐" v-model="selectedMealType" /> 中餐</label>
+            <label><input type="radio" value="晚餐" v-model="selectedMealType" /> 晚餐</label>
+            <label><input type="radio" value="點心" v-model="selectedMealType" /> 點心</label>
+          </div>
+          <div class="modal-row">
+            <label>選擇數量</label>
+            <input type="number" v-model="quantity" min="1" />
+          </div>
+          <div class="modal-row">
+            <button @click="closeModal">Cancel</button>
+            <button @click="saveRecord">Save</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -123,16 +149,17 @@ export default {
       type: ''
     })
 
+    const toggleType = (value) => {
+    filters.value.type = filters.value.type === value ? '' : value
+  }
+
+    const showModal = ref(false)
+    const selectedMealType = ref('')
+    const quantity = ref(1)
+    const currentFood = ref(null)
+
     const handleSearch = () => {
-      const {
-        priceMin,
-        priceMax,
-        calMin,
-        calMax,
-        name,
-        restaurant,
-        type
-      } = filters.value
+      const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
 
       const allEmpty =
         priceMin === '' &&
@@ -143,9 +170,7 @@ export default {
         restaurant.trim() === '' &&
         type === ''
 
-      if (allEmpty) {
-        return // 若條件全部為空，不執行搜尋
-      }
+      if (allEmpty) return
 
       isLoading.value = true
       hasSearched.value = true
@@ -173,21 +198,39 @@ export default {
     }
 
     const addToFoodRecord = (food) => {
-      console.log('加入食物記錄:', food)
+      currentFood.value = food
+      showModal.value = true
+    }
+
+    const closeModal = () => {
+      showModal.value = false
+      selectedMealType.value = ''
+      quantity.value = 1
+      currentFood.value = null
+    }
+
+    const saveRecord = () => {
+      console.log('儲存記錄:', {
+        food: currentFood.value,
+        mealType: selectedMealType.value,
+        quantity: quantity.value
+      })
+      closeModal()
     }
 
     onMounted(() => {
       isLoading.value = true
       setTimeout(() => {
-        // 推薦食物（模擬從資料庫抓取）
         recommendedFoods.value = [
-          { name: '咖哩飯1', restaurant: 'CoCo壹番屋1', calories: 100, price: 190, type: '單點' },
-          { name: '牛肉麵1', restaurant: '永康牛肉麵1', calories: 200, price: 180, type: '套餐' }
+          { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
+          { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
+          { name: '雞塊1', restaurant: 'MOS1', calories: 180, price: 60, type: '單點' },
+
         ]
-        // 搜尋所有食物（模擬從資料庫抓取）
         food_from_database.value = [
-          { name: '咖哩飯2', restaurant: 'CoCo壹番屋2', calories: 850, price: 190, type: '單點' },
-          { name: '牛肉麵2', restaurant: '永康牛肉麵2', calories: 700, price: 180, type: '套餐' }
+          { name: '漢堡2', restaurant: '麥當勞2', calories: 850, price: 190, type: '單點' },
+          { name: '薯條2', restaurant: '摩斯2', calories: 150, price: 180, type: '套餐' },
+          { name: '雞塊2', restaurant: 'MOS2', calories: 400, price: 200, type: '套餐' }
         ]
         isLoading.value = false
       }, 500)
@@ -195,17 +238,26 @@ export default {
 
     return {
       filters,
+      toggleType,
       recommendedFoods,
       searchResults,
       isLoading,
       hasSearched,
       handleSearch,
       addToFavorites,
-      addToFoodRecord
+      addToFoodRecord,
+      showModal,
+      selectedMealType,
+      quantity,
+      currentFood,
+      closeModal,
+      saveRecord
     }
   }
 }
 </script>
+
+
 
 <style scoped>
 .food-search-page {
@@ -283,7 +335,6 @@ export default {
   flex-direction: column;
   gap: 4px;
   justify-content: center;
-  
 }
 
 .no-results,
@@ -300,5 +351,73 @@ export default {
 .loading-state p {
   color: #666;
   font-size: 18px;
+}
+
+.modal {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.modal-content {
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  color: red;
+  cursor: pointer;
+}
+
+.modal-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 </style>
