@@ -184,7 +184,7 @@ export default {
           { name: '咖哩飯1', restaurant: 'CoCo壹番屋1', calories: 100, price: 190, type: '單點' },
           { name: '牛肉麵1', restaurant: '永康牛肉麵1', calories: 200, price: 180, type: '套餐' }
         ]
-        // 所有食物（模擬從資料庫抓取）
+        // 搜尋所有食物（模擬從資料庫抓取）
         food_from_database.value = [
           { name: '咖哩飯2', restaurant: 'CoCo壹番屋2', calories: 850, price: 190, type: '單點' },
           { name: '牛肉麵2', restaurant: '永康牛肉麵2', calories: 700, price: 180, type: '套餐' }
