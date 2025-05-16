@@ -129,10 +129,13 @@
 
 <script>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'FoodSearch',
   setup() {
+    const router = useRouter() // 取得 router 實例
+
     const searchResults = ref([])
     const food_from_database = ref([])
     const recommendedFoods = ref([])
@@ -150,8 +153,8 @@ export default {
     })
 
     const toggleType = (value) => {
-    filters.value.type = filters.value.type === value ? '' : value
-  }
+      filters.value.type = filters.value.type === value ? '' : value
+    }
 
     const showModal = ref(false)
     const selectedMealType = ref('')
@@ -210,11 +213,27 @@ export default {
     }
 
     const saveRecord = () => {
-      console.log('儲存記錄:', {
-        food: currentFood.value,
+      if (!selectedMealType.value) {
+        alert('請選擇餐點類型')
+        return
+      }
+      // 組合要傳的參數
+      const foodData = {
+        name: currentFood.value.name,
+        restaurant: currentFood.value.restaurant,
+        calories: currentFood.value.calories,
+        price: currentFood.value.price,
+        type: currentFood.value.type,
         mealType: selectedMealType.value,
         quantity: quantity.value
+      }
+
+      // 跳轉到 FoodRecord 頁面並帶參數
+      router.push({ 
+        name: 'FoodRecord', // 請確認路由名稱
+        query: foodData
       })
+
       closeModal()
     }
 
@@ -225,7 +244,6 @@ export default {
           { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
           { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
           { name: '雞塊1', restaurant: 'MOS1', calories: 180, price: 60, type: '單點' },
-
         ]
         food_from_database.value = [
           { name: '漢堡2', restaurant: '麥當勞2', calories: 850, price: 190, type: '單點' },
