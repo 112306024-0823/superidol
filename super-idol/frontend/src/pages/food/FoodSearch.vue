@@ -108,7 +108,7 @@
           <div class="modal-row"><strong>餐點類型</strong></div>
           <div class="modal-row">
             <label><input type="radio" value="早餐" v-model="selectedMealType" /> 早餐</label>
-            <label><input type="radio" value="中餐" v-model="selectedMealType" /> 中餐</label>
+            <label><input type="radio" value="午餐" v-model="selectedMealType" /> 午餐</label>
             <label><input type="radio" value="晚餐" v-model="selectedMealType" /> 晚餐</label>
             <label><input type="radio" value="點心" v-model="selectedMealType" /> 點心</label>
           </div>
@@ -240,11 +240,13 @@ export default {
     onMounted(() => {
       isLoading.value = true
       setTimeout(() => {
+        //推薦食物
         recommendedFoods.value = [
           { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
           { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
           { name: '雞塊1', restaurant: 'MOS1', calories: 180, price: 60, type: '單點' },
         ]
+        //搜尋結果
         food_from_database.value = [
           { name: '漢堡2', restaurant: '麥當勞2', calories: 850, price: 190, type: '單點' },
           { name: '薯條2', restaurant: '摩斯2', calories: 150, price: 180, type: '套餐' },
@@ -274,8 +276,6 @@ export default {
   }
 }
 </script>
-
-
 
 <style scoped>
 .food-search-page {
@@ -310,6 +310,20 @@ export default {
   align-items: center;
   gap: 8px;
 }
+.form-group button {
+  background-color: rgb(255, 192, 76);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.form-group button:hover {
+  background-color: orange;
+}
+
 
 .bar_short {
   border-radius: 5px;
@@ -354,6 +368,20 @@ export default {
   gap: 4px;
   justify-content: center;
 }
+
+.food-actions button {
+  background-color: #ffeb85;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.food-actions button:hover {
+  background-color: rgb(255, 192, 76);
+}
+
 
 .no-results,
 .loading-state {
@@ -437,5 +465,19 @@ export default {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.modal-row button {
+  background-color: #ffeb85; /* 鵝黃色 */
+  color: #333;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.modal-row button:hover {
+  background-color: #f5d94b; /* 深一點的鵝黃色 */
 }
 </style>

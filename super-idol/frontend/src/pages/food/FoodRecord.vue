@@ -14,6 +14,31 @@
         </button>
       </div>
 
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>日期</label>
+          <input type="date" v-model="selectedDate">
+        </div>
+        <div class="filter-item">
+          <label>食物類型</label>
+          <select>
+            <option>全部</option>
+            <option>漢堡</option>
+            <option>薯條</option>
+            <option>雞塊</option>
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>餐廳</label>
+          <select>
+            <option>全部</option>
+            <option>麥當勞</option>
+            <option>肯德基</option>
+            <option>摩斯</option>
+          </select>
+        </div>
+      </div>
+
       <!-- 每日卡路里摘要 -->
       <div class="calorie-summary">
         <div class="calorie-info">
@@ -51,7 +76,7 @@
               <p>尚未添加早餐食物</p>
             </div>
             <div v-else v-for="(item, index) in breakfastItems" :key="index" class="food-card">
-              <div>{{ item.name }}</div>
+              <div><strong>{{ item.name }}</strong></div>
               <div>餐廳:{{ item.restaurant }}</div>
               <div>價格:{{ item.price }}</div>
               <div>熱量: {{ item.calories }}</div>
@@ -75,7 +100,7 @@
               <p>尚未添加午餐食物</p>
             </div>
             <div v-else v-for="(item, index) in lunchItems" :key="index" class="food-card">
-              <div>{{ item.name }}</div>
+              <div><strong>{{ item.name }}</strong></div>
               <div>餐廳:{{ item.restaurant }}</div>
               <div>價格:{{ item.price }}</div>
               <div>熱量: {{ item.calories }}</div>
@@ -99,7 +124,7 @@
               <p>尚未添加晚餐食物</p>
             </div>
             <div v-else v-for="(item, index) in dinnerItems" :key="index" class="food-card">
-              <div>{{ item.name }}</div>
+              <div><strong>{{ item.name }}</strong></div>
               <div>餐廳:{{ item.restaurant }}</div>
               <div>價格:{{ item.price }}</div>
               <div>熱量: {{ item.calories }}</div>
@@ -123,7 +148,7 @@
               <p>尚未添加點心食物</p>
             </div>
             <div v-else v-for="(item, index) in snackItems" :key="index" class="food-card">
-              <div>{{ item.name }}</div>
+              <div><strong>{{ item.name }}</strong></div>
               <div>餐廳:{{ item.restaurant }}</div>
               <div>價格:{{ item.price }}</div>
               <div>熱量: {{ item.calories }}</div>
@@ -135,9 +160,6 @@
         </div>
       </div>
     </div>
-
-    <!-- 添加食物彈窗 (後續實現) -->
-    <!-- TODO: 實現添加食物彈窗 -->
   </div>
 </template>
 
@@ -160,12 +182,6 @@ export default {
 
     // 卡路里目標 (實際應從用戶設置獲取)
     const calorieGoal = ref(2000)
-
-    // 模擬各餐食物數據
-    const breakfastItems = ref([])
-    const lunchItems = ref([])
-    const dinnerItems = ref([])
-    const snackItems = ref([])
 
     // 格式化日期
     const formattedDate = computed(() => {
@@ -208,18 +224,23 @@ export default {
       loadFoodRecords()
     }
 
+    // 模擬各餐食物數據
+    //資料庫抓取時用
+    const breakfastItems = ref([])
+    const lunchItems = ref([])
+    const dinnerItems = ref([])
+    const snackItems = ref([])
+
     // 加載食物記錄
     const loadFoodRecords = async () => {
       // TODO: 從API獲取所選日期的食物記錄
       console.log('加載日期', selectedDate.value, '的食物記錄')
 
       // 模擬數據
-      /*
       breakfastItems.value = []
       lunchItems.value = []
       dinnerItems.value = []
       snackItems.value = []
-      */
     }
 
     // 添加食物到指定餐點
@@ -266,7 +287,7 @@ export default {
 
         if (mealType === '早餐') {
           breakfastItems.value.push(newFood)
-        } else if (mealType === '中餐') {
+        } else if (mealType === '午餐') {
           lunchItems.value.push(newFood)
         } else if (mealType === '晚餐') {
           dinnerItems.value.push(newFood)
@@ -278,10 +299,6 @@ export default {
         router.replace({ query: {} })
       }
     })
-    // 刪除功能
-
-
-
 
     return {
       selectedDate,
@@ -324,6 +341,30 @@ export default {
   margin: 0 16px;
   font-size: 20px;
   color: var(--text-color);
+}
+
+.filter-row {
+  display: flex;
+  gap: 20px;
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 可以調整間距 */
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+
+.filter-item select {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 .btn-icon {
@@ -405,12 +446,18 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+
+  background-color: rgb(249, 180, 95);
+  /* 亮橘黃色 */
+  padding: 12px 16px;
+  border-radius: 6px;
+  color: #4a2e00;
 }
 
 .meal-title {
   font-size: 18px;
   margin: 0;
-  color: var(--text-color);
+  color: white;
 }
 
 .empty-meal {
