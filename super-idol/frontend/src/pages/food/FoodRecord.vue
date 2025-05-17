@@ -375,6 +375,38 @@ export default {
   color: var(--primary-color);
 }
 
+.meal-section button{
+  background-color: #ffeb85;
+  /* 鵝黃色 */
+  color: #333;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.meal-section button:hover {
+  background-color: #f5d94b;
+  /* 深一點的鵝黃色 */
+}
+
+.food-card button{
+  background-color: #ffeb85;
+  /* 鵝黃色 */
+  color: #333;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.food-card button:hover {
+  background-color: #f5d94b;
+  /* 深一點的鵝黃色 */
+}
+
 .calorie-summary {
   background-color: var(--card-bg);
   border-radius: 8px;

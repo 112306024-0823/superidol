@@ -37,12 +37,11 @@
         <div class="form-col radio-col">
           <div class="form-group">
             <label>
-              <input type="radio" name="type" value="單點" :checked="filters.type === '單點'"
-              @click="toggleType('單點')" /> 單點
+              <input type="radio" name="type" value="單點" :checked="filters.type === '單點'" @click="toggleType('單點')" />
+              單點
             </label>
             <label>
-              <input type="radio" name="type" :checked="filters.type === '套餐'"
-              @click="toggleType('套餐')" /> 套餐
+              <input type="radio" name="type" :checked="filters.type === '套餐'" @click="toggleType('套餐')" /> 套餐
             </label>
             <button type="button" @click="handleSearch">搜尋</button>
           </div>
@@ -56,13 +55,13 @@
           <div class="food-card" v-for="(food, index) in searchResults" :key="index">
             <div class="food-info">
               <h3>{{ food.name }}</h3>
-              <p>餐廳: {{ food.restaurant }}</p>
-              <p>熱量: {{ food.calories }} 大卡</p>
-              <p>價格: {{ food.price }} 元</p>
-              <p>類別: {{ food.type }} </p>
+              <p>餐廳 : {{ food.restaurant }}</p>
+              <p>價格 : {{ food.price }} 元</p>
+              <p>熱量 : {{ food.calories }} 大卡</p>
+              <p>類別 : {{ food.type }} </p>
             </div>
             <div class="food-actions">
-              <button @click="() => alert('Exercise Calculator')">Exercise Calculator</button>
+              <button @click="openExerciseModal(food)">Exercise Calculator</button>
               <button @click="addToFavorites(food)">Add to Preference</button>
               <button @click="addToFoodRecord(food)">Add to Record</button>
             </div>
@@ -70,20 +69,20 @@
         </div>
       </div>
 
-      <!-- 推薦食物 -->
+      <!-- 推薦清單 -->
       <div v-if="searchResults.length === 0 && !isLoading && !hasSearched" class="recommended-foods">
-        <h2 class="section-title">推薦食物</h2>
+        <h2 class="section-title">推薦清單</h2>
         <div class="food-grid">
           <div class="food-card" v-for="(food, index) in recommendedFoods" :key="index">
             <div class="food-info">
               <h3>{{ food.name }}</h3>
-              <p>餐廳: {{ food.restaurant }}</p>
-              <p>熱量: {{ food.calories }} 大卡</p>
-              <p>價格: {{ food.price }} 元</p>
-              <p>類別: {{ food.type }} </p>
+              <p>餐廳 : {{ food.restaurant }}</p>
+              <p>價格 : {{ food.price }} 元</p>
+              <p>熱量 : {{ food.calories }} 大卡</p>
+              <p>類別 : {{ food.type }} </p>
             </div>
             <div class="food-actions">
-              <button @click="() => alert('Exercise Calculator')">Exercise Calculator</button>
+              <button @click="openExerciseModal(food)">Exercise Calculator</button>
               <button @click="addToFavorites(food)">Add to Preference</button>
               <button @click="addToFoodRecord(food)">Add to Record</button>
             </div>
@@ -101,7 +100,25 @@
         <p>載入中...</p>
       </div>
 
-      <!-- Modal -->
+      <!-- Exercise Calculator Modal -->
+      <div v-if="exerciseModal" class="modal-overlay">
+        <div class="modal">
+          <button class="close-button" @click="closeExerciseModal">&times;</button>
+          <div class="modal-row"><strong>運動計算機</strong></div>
+          <div class="modal-row">
+            <input type="text" placeholder="搜尋運動" v-model="exerciseSearch" />
+            <button type="button" >搜尋</button>
+          </div>
+          <div class="modal-row">
+            <p>跑步：{{ exerciseResults.running }} 分鐘</p>
+          </div>
+          <div class="modal-row">
+            <p>游泳：{{ exerciseResults.swimming }} 分鐘</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add to Record Modal -->
       <div v-if="showModal" class="modal-overlay">
         <div class="modal">
           <button class="close-button" @click="closeModal">&times;</button>
@@ -156,6 +173,14 @@ export default {
       filters.value.type = filters.value.type === value ? '' : value
     }
 
+    const exerciseModal = ref(false)
+    const exerciseResults = ref({
+      running: '',
+      swimming: ''
+    })
+    const exerciseSearch = ref('')
+
+
     const showModal = ref(false)
     const selectedMealType = ref('')
     const quantity = ref(1)
@@ -200,6 +225,27 @@ export default {
       console.log('加入收藏:', food)
     }
 
+    //Exercise Calculator   
+    const openExerciseModal = (food) => {
+      exerciseModal.value = true
+      calculateExercise(food.calories)
+    }
+
+    const calculateExercise = (calories) => {
+      // 假裝呼叫後端
+      setTimeout(() => {
+        exerciseResults.value.running = Math.ceil(calories / 10) // 跑步10大卡/分鐘
+        exerciseResults.value.swimming = Math.ceil(calories / 8) // 游泳8大卡/分鐘
+      }, 300)
+    }
+
+    const closeExerciseModal = () => {
+      exerciseModal.value = false
+      exerciseResults.value = { running: '', swimming: '' }
+      exerciseSearch.value = ''
+    }
+
+    //Add to Record
     const addToFoodRecord = (food) => {
       currentFood.value = food
       showModal.value = true
@@ -229,7 +275,7 @@ export default {
       }
 
       // 跳轉到 FoodRecord 頁面並帶參數
-      router.push({ 
+      router.push({
         name: 'FoodRecord', // 請確認路由名稱
         query: foodData
       })
@@ -240,7 +286,7 @@ export default {
     onMounted(() => {
       isLoading.value = true
       setTimeout(() => {
-        //推薦食物
+        //推薦清單
         recommendedFoods.value = [
           { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
           { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
@@ -265,6 +311,12 @@ export default {
       hasSearched,
       handleSearch,
       addToFavorites,
+      exerciseModal,
+      exerciseResults,
+      exerciseSearch,
+      openExerciseModal,
+      calculateExercise,
+      closeExerciseModal,
       addToFoodRecord,
       showModal,
       selectedMealType,
@@ -310,6 +362,7 @@ export default {
   align-items: center;
   gap: 8px;
 }
+
 .form-group button {
   background-color: rgb(255, 192, 76);
   color: white;
@@ -468,7 +521,8 @@ export default {
 }
 
 .modal-row button {
-  background-color: #ffeb85; /* 鵝黃色 */
+  background-color: #ffeb85;
+  /* 鵝黃色 */
   color: #333;
   border: none;
   border-radius: 20px;
@@ -478,6 +532,7 @@ export default {
 }
 
 .modal-row button:hover {
-  background-color: #f5d94b; /* 深一點的鵝黃色 */
+  background-color: #f5d94b;
+  /* 深一點的鵝黃色 */
 }
 </style>
