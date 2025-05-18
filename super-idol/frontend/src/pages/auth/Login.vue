@@ -214,31 +214,57 @@ export default {
 
 .auth-header h1 {
   margin-bottom: 8px;
-  color: #409eff;
+  color: #f08c00; /* 橘色 */
+  font-weight: 700;
+  font-size: 2.4rem;
 }
 
-.auth-form {
-  margin-top: 20px;
+.auth-header p {
+  color: #f08c00; /* 副標題橘色 */
+  font-weight: 600;
+  font-size: 1.2rem;
 }
 
 .login-btn {
   width: 100%;
+  background-color: #f08c00; /* 橘色底 */
+  border-color: #f08c00;
+  color: white;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
 }
 
-.auth-footer {
-  text-align: center;
-  margin-top: 16px;
+.login-btn:hover {
+  background-color: #d97706; /* 深橘色 hover */
+  border-color: #d97706;
 }
 
 .connection-status {
   text-align: center;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.auth-footer .el-link {
+  color: #f08c00 !important; /* 強制改成橘色 */
+  font-weight: 600;
 }
 
-.status {
-  padding: 2px 6px;
-  border-radius: 4px;
+/* 讓表單標籤跟輸入框垂直排列 */
+.auth-form >>> .el-form-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.auth-form >>> .el-form-item__label {
+  padding: 0 0 6px 0;
+  font-weight: 600;
+  color: #606266;
+}
+
+/* 輸入框寬度全滿 */
+.auth-form >>> .el-form-item__content {
+  width: 100%;
 }
 
 .status.waiting {
