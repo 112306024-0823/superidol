@@ -212,6 +212,7 @@ export default {
       // 實際實作中應該呼叫API更新資料
       console.log('儲存資料:', profile.value)
       // TODO: 呼叫API儲存資料
+      alert('資料已儲存！')
     }
     
     // 重置表單
@@ -230,6 +231,7 @@ export default {
 </script>
 
 <style scoped>
+
 .basic-info-page {
   padding: 20px 0;
 }
@@ -299,6 +301,44 @@ export default {
   gap: 12px;
   margin-top: 32px;
 }
+
+/* 按鈕基本樣式 */
+.btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  user-select: none;
+}
+
+.btn-primary {
+  background-color: #f08c00; /* 橘色 */
+  color: white;
+  border-color: #f08c00;
+}
+
+.btn-primary:hover {
+  background-color: white;
+  color: #f08c00;
+  border-color: #f08c00;
+}
+
+.btn-primary:hover {
+  background-color: #d97706;
+  color: white;
+  border-color: #d97706;
+}
+
+.btn-secondary:hover {
+  background-color: white;
+  color: #d97706;
+  border-color: #d97706;
+}
+
+
 
 @media (max-width: 768px) {
   .form-row {
