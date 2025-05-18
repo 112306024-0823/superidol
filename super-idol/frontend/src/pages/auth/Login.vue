@@ -76,53 +76,69 @@ export default {
     const loginForm = ref(null)
     const formIsValid = ref(true) // 預設設為true以允許提交
     const connectionStatus = ref('waiting')
+    const isSubmitAttempted = ref(false)
+
     
     const form = reactive({
       email: '',
       password: ''
     })
 
-    // 定義表單驗證規則
-    const rules = {
-      email: [
-        { required: true, message: '請輸入電子郵件', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (!value) {
-              callback(new Error('請輸入電子郵件'))
-            } else if (!isValidEmail(value)) {
-              callback(new Error('請輸入有效的電子郵件地址'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: ['blur', 'change'] 
+  const rules = {
+  email: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          // 剛進入且空白，不顯示錯誤
+          callback();
+          return;
         }
-      ],
-      password: [
-        { required: true, message: '請輸入密碼', trigger: 'blur' },
-        { min: 8, message: '密碼長度必須至少為8個字符', trigger: 'blur' }
-      ]
-    }
-    
-    // 表單提交時先進行驗證
-    const submitForm = () => {
-      if (!loginForm.value) {
-        // 如果表單ref不存在，直接執行登入邏輯
-        handleLogin();
-        return;
-      }
-      
-      loginForm.value.validate((valid) => {
-        if (valid) {
-          handleLogin();
+        if (!value) {
+          callback(new Error('請輸入電子郵件'));
+        } else if (!isValidEmail(value)) {
+          callback(new Error('請輸入有效的電子郵件地址'));
         } else {
-          // 即使表單驗證失敗，也允許嘗試登入
-          console.log('表單驗證失敗，但仍嘗試登入');
-          handleLogin();
+          callback();
         }
-      });
+      },
+      trigger: ['blur', 'change']
     }
+  ],
+  password: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          // 剛進入且空白，不顯示錯誤
+          callback();
+          return;
+        }
+        if (!value) {
+          callback(new Error('請輸入密碼'));
+        } else if (value.length < 8) {
+          callback(new Error('密碼長度必須至少為8個字符'));
+        } else {
+          callback();
+        }
+      },
+      trigger: ['blur', 'change']
+    }
+  ]
+}
+
+
+    
+const submitForm = () => {
+  isSubmitAttempted.value = true;
+  loginForm.value?.validate(valid => {
+    if (valid) {
+      handleLogin();
+    } else {
+      console.log('驗證失敗');
+    }
+  });
+};
+
+
     
     // 即時驗證電子郵件
     const validateEmail = () => {
@@ -187,7 +203,8 @@ export default {
       formIsValid,
       connectionStatus,
       isLoading: computed(() => authStore.isLoading),
-      authError
+      authError,
+      isSubmitAttempted
     }
   }
 }
