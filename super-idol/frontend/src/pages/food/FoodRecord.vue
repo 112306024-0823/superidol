@@ -67,7 +67,8 @@
         <div class="meal-section">
           <div class="meal-header">
             <h3 class="meal-title">早餐</h3>
-            <button class="btn btn-sm btn-primary" @click="addFood('breakfast')">添加食物</button>
+            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('breakfast')">添加食物</button>
+
           </div>
 
           <div class="meal-items">
@@ -91,7 +92,7 @@
         <div class="meal-section">
           <div class="meal-header">
             <h3 class="meal-title">午餐</h3>
-            <button class="btn btn-sm btn-primary" @click="addFood('lunch')">添加食物</button>
+            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('lunch')">添加食物</button>
           </div>
 
           <div class="meal-items">
@@ -115,7 +116,7 @@
         <div class="meal-section">
           <div class="meal-header">
             <h3 class="meal-title">晚餐</h3>
-            <button class="btn btn-sm btn-primary" @click="addFood('dinner')">添加食物</button>
+            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('dinner')">添加食物</button>
           </div>
 
           <div class="meal-items">
@@ -139,7 +140,8 @@
         <div class="meal-section">
           <div class="meal-header">
             <h3 class="meal-title">點心</h3>
-            <button class="btn btn-sm btn-primary" @click="addFood('snacks')">添加食物</button>
+            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('snacks')">添加食物</button>
+
           </div>
 
           <div class="meal-items">
@@ -505,6 +507,23 @@ export default {
   flex-direction: column;
   gap: 12px;
 }
+.add-food-btn {
+  background-color: #ffa940;
+  color: white;
+  border: 1px solid #ffa940;
+  border-radius: 24px;      /* 大圓角，圓弧效果 */
+  padding: 6px 20px;        /* 上下內距6px，左右20px */
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  cursor: pointer;
+}
+
+.add-food-btn:hover {
+  background-color: #d48806;
+  border-color: #d48806;
+  color: white;
+}
+
 
 @media (max-width: 768px) {
   .calorie-info {
