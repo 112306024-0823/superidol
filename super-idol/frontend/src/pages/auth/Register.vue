@@ -24,6 +24,41 @@
           />
         </el-form-item>
         
+        
+        <el-form-item label="預算" prop="budget">
+  <el-input-number 
+    v-model="form.budget" 
+    :min="0" 
+    placeholder="請輸入預算" 
+    controls-position="right"
+    style="width: 100%;"
+  />
+</el-form-item>
+
+<el-form-item label="每週熱量限制" prop="calorieLimit">
+  <el-input-number 
+    v-model="form.calorieLimit" 
+    :min="0" 
+    placeholder="請輸入每週熱量限制" 
+    controls-position="right"
+    style="width: 100%;"
+  />
+</el-form-item>
+
+<el-form-item label="飲食偏好" prop="foodPreference">
+  <el-input 
+    v-model="form.foodPreference" 
+    placeholder="請輸入飲食偏好"
+  />
+</el-form-item>
+
+<el-form-item label="運動偏好" prop="exercisePreference">
+  <el-input 
+    v-model="form.exercisePreference" 
+    placeholder="請輸入運動偏好"
+  />
+</el-form-item>
+
         <el-form-item label="電子郵件" prop="email">
           <el-input 
             v-model="form.email"
@@ -112,7 +147,11 @@ export default {
       name: '',
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      budget: null,
+  calorieLimit: null,
+  foodPreference: '',
+  exercisePreference: ''
     })
     
     const localError = ref('')
@@ -137,6 +176,54 @@ export default {
       trigger: ['blur', 'change']
     }
   ],
+  budget: [
+  {
+    validator: (rule, value, callback) => {
+      if (value == null || value === '') {
+        callback()
+      } else if (value < 0) {
+        callback(new Error('預算不能是負數'))
+      } else {
+        callback()
+      }
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+calorieLimit: [
+  {
+    validator: (rule, value, callback) => {
+      if (value == null || value === '') {
+        callback()
+      } else if (value < 0) {
+        callback(new Error('每週熱量限制不能是負數'))
+      } else {
+        callback()
+      }
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+foodPreference: [
+  {
+    validator: (rule, value, callback) => {
+      callback() // 選填，不做嚴格限制
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+exercisePreference: [
+  {
+    validator: (rule, value, callback) => {
+      callback() // 選填，不做嚴格限制
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
   email: [
     {
       validator: (rule, value, callback) => {
@@ -249,7 +336,11 @@ export default {
         await authStore.register({
           name: form.name,
           email: form.email,
-          password: form.password
+          password: form.password,
+          budget: form.budget,
+  calorieLimit: form.calorieLimit,
+  foodPreference: form.foodPreference,
+  exercisePreference: form.exercisePreference
         })
         
         // 註冊成功，導航到儀表板
