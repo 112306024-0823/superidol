@@ -2,132 +2,328 @@
   <div class="food-search-page">
     <div class="container">
       <h1 class="page-title">食物搜尋</h1>
-      
-      <!-- 搜尋欄 -->
-      <div class="search-bar">
-        <input 
-          type="text" 
-          v-model="searchQuery" 
-          @input="handleSearch"
-          class="search-input" 
-          placeholder="搜尋食物..."
-        />
-        <button class="btn btn-primary search-btn" @click="handleSearch">
-          搜尋
-        </button>
+
+      <!-- 搜尋表單 -->
+      <div class="form-container" @keydown.enter="handleSearch">
+        <!-- 第一欄 -->
+        <div class="form-col">
+          <div class="form-group">
+            <label>價格</label>
+            <input type="number" class="bar_short" v-model="filters.priceMin" /> ~
+            <input type="number" class="bar_short" v-model="filters.priceMax" />
+            <span>元</span>
+          </div>
+          <div class="form-group">
+            <label>熱量</label>
+            <input type="number" class="bar_short" v-model="filters.calMin" /> ~
+            <input type="number" class="bar_short" v-model="filters.calMax" />
+            <span>大卡</span>
+          </div>
+        </div>
+
+        <!-- 第二欄 -->
+        <div class="form-col">
+          <div class="form-group">
+            <label>食物</label>
+            <input type="text" class="bar_long" v-model="filters.name" />
+          </div>
+          <div class="form-group">
+            <label>餐廳</label>
+            <input type="text" class="bar_long" v-model="filters.restaurant" />
+          </div>
+        </div>
+
+        <!-- 第三欄 -->
+        <div class="form-col radio-col">
+          <div class="form-group">
+            <label>
+              <input type="radio" name="type" value="單點" :checked="filters.type === '單點'" @click="toggleType('單點')" />
+              單點
+            </label>
+            <label>
+              <input type="radio" name="type" :checked="filters.type === '套餐'" @click="toggleType('套餐')" /> 套餐
+            </label>
+            <button type="button" @click="handleSearch">搜尋</button>
+          </div>
+        </div>
       </div>
-      
+
       <!-- 搜尋結果 -->
-      <div v-if="searchQuery && searchResults.length > 0" class="search-results">
+      <div v-if="searchResults.length > 0" class="search-results">
         <h2 class="section-title">搜尋結果</h2>
         <div class="food-grid">
-          <!-- TODO: 使用 FoodCard 組件顯示搜尋結果 -->
-          <!-- 使用 v-for 遍歷搜尋結果 -->
+          <div class="food-card" v-for="(food, index) in searchResults" :key="index">
+            <div class="food-info">
+              <h3>{{ food.name }}</h3>
+              <p>餐廳 : {{ food.restaurant }}</p>
+              <p>價格 : {{ food.price }} 元</p>
+              <p>熱量 : {{ food.calories }} 大卡</p>
+              <p>類別 : {{ food.type }} </p>
+            </div>
+            <div class="food-actions">
+              <button @click="openExerciseModal(food)">Exercise Calculator</button>
+              <button @click="addToFavorites(food)">Add to Preference</button>
+              <button @click="addToFoodRecord(food)">Add to Record</button>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <!-- 推薦食物 (當沒有搜尋查詢時顯示) -->
-      <div v-if="!searchQuery" class="recommended-foods">
-        <h2 class="section-title">推薦食物</h2>
+
+      <!-- 推薦清單 -->
+      <div v-if="searchResults.length === 0 && !isLoading && !hasSearched" class="recommended-foods">
+        <h2 class="section-title">推薦清單</h2>
         <div class="food-grid">
-          <!-- TODO: 使用 FoodCard 組件顯示推薦食物 -->
-          <!-- 使用 v-for 遍歷推薦食物列表 -->
+          <div class="food-card" v-for="(food, index) in recommendedFoods" :key="index">
+            <div class="food-info">
+              <h3>{{ food.name }}</h3>
+              <p>餐廳 : {{ food.restaurant }}</p>
+              <p>價格 : {{ food.price }} 元</p>
+              <p>熱量 : {{ food.calories }} 大卡</p>
+              <p>類別 : {{ food.type }} </p>
+            </div>
+            <div class="food-actions">
+              <button @click="openExerciseModal(food)">Exercise Calculator</button>
+              <button @click="addToFavorites(food)">Add to Preference</button>
+              <button @click="addToFoodRecord(food)">Add to Record</button>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <!-- 搜尋無結果 -->
-      <div v-if="searchQuery && searchResults.length === 0 && !isLoading" class="no-results">
-        <p>未找到與 "{{ searchQuery }}" 相符的食物</p>
+
+      <!-- 無結果 -->
+      <div v-if="searchResults.length === 0 && hasSearched && !isLoading" class="no-results">
+        <p>未找到符合條件的食物</p>
       </div>
-      
-      <!-- 載入中狀態 -->
+
+      <!-- 載入中 -->
       <div v-if="isLoading" class="loading-state">
         <p>載入中...</p>
       </div>
+
+      <!-- Exercise Calculator Modal -->
+      <div v-if="exerciseModal" class="modal-overlay">
+        <div class="modal">
+          <button class="close-button" @click="closeExerciseModal">&times;</button>
+          <div class="modal-row"><strong>運動計算機</strong></div>
+          <div class="modal-row">
+            <input type="text" placeholder="搜尋運動" v-model="exerciseSearch" />
+            <button type="button" >搜尋</button>
+          </div>
+          <div class="modal-row">
+            <p>跑步：{{ exerciseResults.running }} 分鐘</p>
+          </div>
+          <div class="modal-row">
+            <p>游泳：{{ exerciseResults.swimming }} 分鐘</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add to Record Modal -->
+      <div v-if="showModal" class="modal-overlay">
+        <div class="modal">
+          <button class="close-button" @click="closeModal">&times;</button>
+          <div class="modal-row"><strong>餐點類型</strong></div>
+          <div class="modal-row">
+            <label><input type="radio" value="早餐" v-model="selectedMealType" /> 早餐</label>
+            <label><input type="radio" value="午餐" v-model="selectedMealType" /> 午餐</label>
+            <label><input type="radio" value="晚餐" v-model="selectedMealType" /> 晚餐</label>
+            <label><input type="radio" value="點心" v-model="selectedMealType" /> 點心</label>
+          </div>
+          <div class="modal-row">
+            <label>選擇數量</label>
+            <input type="number" v-model="quantity" min="1" />
+          </div>
+          <div class="modal-row">
+            <button @click="closeModal">Cancel</button>
+            <button @click="saveRecord">Save</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script>
-import { ref, watch, onMounted } from 'vue'
-// TODO: 導入 FoodCard 組件及 food store
-// import FoodCard from '../../components/food/FoodCard.vue'
-// import { useFoodStore } from '../../store/food'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'FoodSearch',
-  components: {
-    // FoodCard
-  },
   setup() {
-    // const foodStore = useFoodStore()
-    
-    const searchQuery = ref('')
+    const router = useRouter() // 取得 router 實例
+
     const searchResults = ref([])
+    const food_from_database = ref([])
     const recommendedFoods = ref([])
     const isLoading = ref(false)
-    
-    // 處理搜尋
-    const handleSearch = async () => {
-      if (!searchQuery.value.trim()) {
-        searchResults.value = []
+    const hasSearched = ref(false)
+
+    const filters = ref({
+      priceMin: '',
+      priceMax: '',
+      calMin: '',
+      calMax: '',
+      name: '',
+      restaurant: '',
+      type: ''
+    })
+
+    const toggleType = (value) => {
+      filters.value.type = filters.value.type === value ? '' : value
+    }
+
+    const exerciseModal = ref(false)
+    const exerciseResults = ref({
+      running: '',
+      swimming: ''
+    })
+    const exerciseSearch = ref('')
+
+
+    const showModal = ref(false)
+    const selectedMealType = ref('')
+    const quantity = ref(1)
+    const currentFood = ref(null)
+
+    const handleSearch = () => {
+      const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
+
+      const allEmpty =
+        priceMin === '' &&
+        priceMax === '' &&
+        calMin === '' &&
+        calMax === '' &&
+        name.trim() === '' &&
+        restaurant.trim() === '' &&
+        type === ''
+
+      if (allEmpty) return
+
+      isLoading.value = true
+      hasSearched.value = true
+
+      setTimeout(() => {
+        const filtered = food_from_database.value.filter(food => {
+          return (
+            (priceMin === '' || food.price >= Number(priceMin)) &&
+            (priceMax === '' || food.price <= Number(priceMax)) &&
+            (calMin === '' || food.calories >= Number(calMin)) &&
+            (calMax === '' || food.calories <= Number(calMax)) &&
+            (name === '' || food.name.toLowerCase().includes(name.toLowerCase())) &&
+            (restaurant === '' || food.restaurant.toLowerCase().includes(restaurant.toLowerCase())) &&
+            (type === '' || food.type === type)
+          )
+        })
+
+        searchResults.value = filtered
+        isLoading.value = false
+      }, 300)
+    }
+
+    const addToFavorites = (food) => {
+      console.log('加入收藏:', food)
+    }
+
+    //Exercise Calculator   
+    const openExerciseModal = (food) => {
+      exerciseModal.value = true
+      calculateExercise(food.calories)
+    }
+
+    const calculateExercise = (calories) => {
+      // 假裝呼叫後端
+      setTimeout(() => {
+        exerciseResults.value.running = Math.ceil(calories / 10) // 跑步10大卡/分鐘
+        exerciseResults.value.swimming = Math.ceil(calories / 8) // 游泳8大卡/分鐘
+      }, 300)
+    }
+
+    const closeExerciseModal = () => {
+      exerciseModal.value = false
+      exerciseResults.value = { running: '', swimming: '' }
+      exerciseSearch.value = ''
+    }
+
+    //Add to Record
+    const addToFoodRecord = (food) => {
+      currentFood.value = food
+      showModal.value = true
+    }
+
+    const closeModal = () => {
+      showModal.value = false
+      selectedMealType.value = ''
+      quantity.value = 1
+      currentFood.value = null
+    }
+
+    const saveRecord = () => {
+      if (!selectedMealType.value) {
+        alert('請選擇餐點類型')
         return
       }
-      
-      isLoading.value = true
-      try {
-        // TODO: 使用 store 或 API 搜尋食物
-        // searchResults.value = await foodStore.searchFood(searchQuery.value)
-        
-        // 模擬搜尋結果
-        await new Promise(resolve => setTimeout(resolve, 500))
-        searchResults.value = [
-          // 示例搜尋結果數據
-        ]
-      } catch (error) {
-        console.error('搜尋失敗:', error)
-      } finally {
-        isLoading.value = false
+      // 組合要傳的參數
+      const foodData = {
+        name: currentFood.value.name,
+        restaurant: currentFood.value.restaurant,
+        calories: currentFood.value.calories,
+        price: currentFood.value.price,
+        type: currentFood.value.type,
+        mealType: selectedMealType.value,
+        quantity: quantity.value
       }
+
+      // 跳轉到 FoodRecord 頁面並帶參數
+      router.push({
+        name: 'FoodRecord', // 請確認路由名稱
+        query: foodData
+      })
+
+      closeModal()
     }
-    
-    // 添加到收藏
-    const addToFavorites = async (food) => {
-      // TODO: 實現添加到收藏功能
-      console.log('添加到收藏:', food)
-    }
-    
-    // 添加到食物記錄
-    const addToFoodRecord = (food) => {
-      // TODO: 導航到添加食物記錄頁面，並傳遞選擇的食物
-      console.log('添加到食物記錄:', food)
-    }
-    
-    // 獲取推薦食物
-    onMounted(async () => {
+
+    onMounted(() => {
       isLoading.value = true
-      try {
-        // TODO: 從API獲取推薦食物
-        // 模擬數據
-        await new Promise(resolve => setTimeout(resolve, 500))
+      setTimeout(() => {
+        //推薦清單
         recommendedFoods.value = [
-          // 示例推薦食物數據
+          { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
+          { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
+          { name: '雞塊1', restaurant: 'MOS1', calories: 180, price: 60, type: '單點' },
         ]
-      } catch (error) {
-        console.error('獲取推薦食物失敗:', error)
-      } finally {
+        //搜尋結果
+        food_from_database.value = [
+          { name: '漢堡2', restaurant: '麥當勞2', calories: 850, price: 190, type: '單點' },
+          { name: '薯條2', restaurant: '摩斯2', calories: 150, price: 180, type: '套餐' },
+          { name: '雞塊2', restaurant: 'MOS2', calories: 400, price: 200, type: '套餐' }
+        ]
         isLoading.value = false
-      }
+      }, 500)
     })
-    
+
     return {
-      searchQuery,
-      searchResults,
+      filters,
+      toggleType,
       recommendedFoods,
+      searchResults,
       isLoading,
+      hasSearched,
       handleSearch,
       addToFavorites,
-      addToFoodRecord
+      exerciseModal,
+      exerciseResults,
+      exerciseSearch,
+      openExerciseModal,
+      calculateExercise,
+      closeExerciseModal,
+      addToFoodRecord,
+      showModal,
+      selectedMealType,
+      quantity,
+      currentFood,
+      closeModal,
+      saveRecord
     }
   }
 }
@@ -144,21 +340,51 @@ export default {
   color: var(--text-color);
 }
 
-.search-bar {
+.form-container {
   display: flex;
+  align-items: flex-start;
+  gap: 50px;
   margin-bottom: 24px;
 }
 
-.search-input {
-  flex: 1;
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px 0 0 4px;
-  font-size: 16px;
+.form-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.search-btn {
-  border-radius: 0 4px 4px 0;
+.radio-col {
+  margin-top: 4px;
+}
+
+.form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-group button {
+  background-color: rgb(255, 192, 76);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 5px 13px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.form-group button:hover {
+  background-color: orange;
+}
+
+
+.bar_short {
+  border-radius: 5px;
+  width: 8dvb;
+}
+
+.bar_long {
+  border-radius: 5px;
 }
 
 .section-title {
@@ -169,12 +395,49 @@ export default {
 
 .food-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 32px;
 }
 
-.no-results, .loading-state {
+.food-card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.food-info {
+  flex: 1;
+}
+
+.food-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.food-actions button {
+  background-color: #ffeb85;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.food-actions button:hover {
+  background-color: rgb(255, 192, 76);
+}
+
+
+.no-results,
+.loading-state {
   display: flex;
   justify-content: center;
   padding: 40px;
@@ -183,8 +446,93 @@ export default {
   margin-top: 24px;
 }
 
-.no-results p, .loading-state p {
+.no-results p,
+.loading-state p {
   color: #666;
   font-size: 18px;
 }
-</style> 
+
+.modal {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.modal-content {
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal {
+  background: #fff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.close-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  color: red;
+  cursor: pointer;
+}
+
+.modal-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.modal-row button {
+  background-color: #ffeb85;
+  /* 鵝黃色 */
+  color: #333;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.modal-row button:hover {
+  background-color: #f5d94b;
+  /* 深一點的鵝黃色 */
+}
+</style>

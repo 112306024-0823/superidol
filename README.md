@@ -1,4 +1,4 @@
-# 速Per Idol - 健康管理網站
+# 速Per Idol - 飲食+運動管理網站
 
 速Per Idol 是一個全方位的健康飲食、運動追蹤應用程式，幫助用戶管理日常飲食和營養攝取，促進健康生活方式。
 
@@ -57,20 +57,17 @@
 
 我們提供了自動設置腳本，可以一鍵配置開發環境：
 
-**Windows 用戶**:
 ```bash
-cd super-idol/scripts
-setup_dev.bat
+# 1. 複製專案
+git clone <repository-url>
+cd super-idol
+
+# 2. 執行設置腳本
+cd scripts
+node setup.js
 ```
 
-**macOS/Linux 用戶**:
-```bash
-cd super-idol/scripts
-chmod +x setup_dev.sh
-./setup_dev.sh
-```
-
-這些腳本會自動完成以下步驟：
+此腳本會自動完成以下步驟：
 1. 創建必要的目錄結構
 2. 設置環境變數文件 (.env)
 3. 安裝前端和後端依賴
@@ -78,7 +75,20 @@ chmod +x setup_dev.sh
 
 ### 啟動開發環境 (三種方法)
 
-#### 方法1: 同時運行前後端（推薦開發使用）
+#### 方法1: 使用整合腳本（推薦開發使用）
+
+```bash
+cd super-idol/scripts
+node dev.js
+```
+
+這個腳本會同時啟動前端和後端服務，並顯示相關的URL：
+- 前端: http://localhost:5173
+- 後端: http://localhost:5000
+
+按 Ctrl+C 可同時停止所有服務。
+
+#### 方法2: 分別啟動前後端
 
 使用兩個終端分別運行前端和後端：
 
@@ -96,7 +106,7 @@ npm run dev
 
 這是最可靠的方法，因為你可以單獨查看每個服務的日誌輸出，並在需要時單獨重啟任一服務。
 
-#### 方法2: 使用整合腳本
+#### 方法3: 使用 npm 整合腳本
 
 ```bash
 cd super-idol/frontend
@@ -105,12 +115,25 @@ npm run dev:all
 
 這個命令使用我們提供的腳本同時啟動前端和後端服務。
 
-#### 方法3: 直接使用Node.js運行腳本
+### 部署應用
+
+我們提供了部署腳本用於測試或生產環境部署：
 
 ```bash
-cd super-idol
-node scripts/dev.js
+cd super-idol/scripts
+
+# Linux/Mac
+chmod +x deploy.sh
+./deploy.sh
+
+# Windows (使用 Git Bash)
+bash deploy.sh
 ```
+
+此腳本會：
+1. 啟動後端服務
+2. 構建前端應用
+3. 啟動預覽服務器
 
 ### 訪問應用
 
@@ -143,13 +166,8 @@ node scripts/dev.js
    ```
 
 4. **設置 MySQL 數據庫**
-   - 默認配置已經設置使用遠程數據庫
-   - 數據庫信息：
-     - 主機: superidol.c9i82eygu8mk.ap-southeast-2.rds.amazonaws.com
-     - 端口: 3306
-     - 用戶名: DBMS11302
-     - 密碼: ilovedbms
-     - 數據庫名: superidol
+   - 默認配置已經設置使用遠程數據庫(不需再更動)
+
 
 5. **配置後端環境變數**
    - 在 `backend` 目錄中創建 `.env` 文件，填入以下內容：
@@ -193,7 +211,7 @@ node scripts/dev.js
    - 確認 `frontend/src/services/api.js` 文件存在
    - 確保文件末尾有 `export default api;` 語句
 
-4. **找不到靜態文件**
+4. **找不到靜態文件(雲端部署問題，本地開發暫不需理會)**
    - 確保前端已構建 (`npm run build`) 
    - 確保 `backend/static` 目錄包含前端構建文件
 
@@ -233,7 +251,7 @@ super-idol/
 ├── scripts/               # 腳本目錄
 │   ├── dev.js             # 開發環境啟動腳本
 │   ├── setup.js           # 環境設置腳本
-│   ├── deploy.sh          # 部署腳本
+│   ├── deploy.sh          # 部署腳本(雲端部署用，本地開發者不需理會)
 │   └── ...
 └── ...
 ```
@@ -284,7 +302,7 @@ super-idol/
    - 請求體: `{ "name": "運動名稱", "calories": 消耗卡路里, "duration": 時長, ... }`
    - 響應: `{ "id": 記錄ID, "message": "成功訊息" }`
 
-## 生產環境部署
+## 生產環境部署(本地開發者暫不需理會)
 
 本專案已配置為可在 Render.com 上部署：
 

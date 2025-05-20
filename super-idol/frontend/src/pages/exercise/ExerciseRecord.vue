@@ -2,7 +2,7 @@
   <div class="exercise-record-page">
     <div class="container">
       <h1 class="page-title">運動記錄</h1>
-      
+
       <!-- 日期選擇器 -->
       <div class="date-selector">
         <button class="btn btn-icon" @click="changeDate(-1)">
@@ -13,7 +13,23 @@
           <i class="icon-right-arrow"></i>
         </button>
       </div>
-      
+
+      <div class="filter-row">
+        <div class="filter-item">
+          <label>日期 </label>
+          <input type="date" v-model="selectedDate">
+        </div>
+        <div class="filter-item">
+          <label>運動類型 </label>
+          <select>
+            <option>跑步</option>
+            <option>游泳</option>
+            <option>籃球</option>
+            <option>羽球</option>
+          </select>
+        </div>
+      </div>
+
       <!-- 卡路里燃燒摘要 -->
       <div class="calorie-summary">
         <div class="summary-item">
@@ -29,7 +45,7 @@
           <span class="summary-label">運動次數</span>
         </div>
       </div>
-      
+
       <!-- 運動記錄列表 -->
       <div class="exercise-list-container">
         <div class="list-header">
@@ -38,7 +54,7 @@
             添加運動
           </button>
         </div>
-        
+
         <div v-if="exercises.length" class="exercise-list">
           <!-- TODO: 使用 v-for 遍歷運動記錄 -->
           <div class="exercise-item">
@@ -63,7 +79,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- 空狀態顯示 -->
         <div v-if="!exercises.length && !isLoading" class="empty-state">
           <p>今天還沒有運動記錄</p>
@@ -71,14 +87,14 @@
             添加運動
           </button>
         </div>
-        
+
         <!-- 載入中狀態 -->
         <div v-if="isLoading" class="loading-state">
           <p>載入中...</p>
         </div>
       </div>
     </div>
-    
+
     <!-- 添加運動彈窗 (後續實現) -->
     <!-- TODO: 實現添加運動彈窗 -->
   </div>
@@ -93,15 +109,15 @@ export default {
   setup() {
     // 當前選中的日期
     const selectedDate = ref(new Date())
-    
+
     // 運動記錄
     const exercises = ref([])
     const isLoading = ref(false)
-    
+
     // 添加運動彈窗
     const showAddExerciseModal = ref(false)
     const currentExercise = ref(null)
-    
+
     // 格式化日期
     const formattedDate = computed(() => {
       return selectedDate.value.toLocaleDateString('zh-TW', {
@@ -111,7 +127,7 @@ export default {
         weekday: 'long'
       })
     })
-    
+
     // 計算每日摘要
     const dailySummary = computed(() => {
       // TODO: 實際實現中應計算所有運動的總和
@@ -121,24 +137,24 @@ export default {
         exerciseCount: 2
       }
     })
-    
+
     // 更改日期
     const changeDate = (days) => {
       const newDate = new Date(selectedDate.value)
       newDate.setDate(newDate.getDate() + days)
       selectedDate.value = newDate
-      
+
       // 加載所選日期的運動記錄
       loadExerciseRecords()
     }
-    
+
     // 加載運動記錄
     const loadExerciseRecords = async () => {
       isLoading.value = true
       try {
         // TODO: 從API獲取所選日期的運動記錄
         console.log('加載日期', selectedDate.value, '的運動記錄')
-        
+
         // 模擬數據
         await new Promise(resolve => setTimeout(resolve, 500))
         exercises.value = [
@@ -150,7 +166,7 @@ export default {
         isLoading.value = false
       }
     }
-    
+
     // 添加運動記錄
     const addExercise = async (exerciseData) => {
       // TODO: 實現添加運動記錄功能
@@ -158,7 +174,7 @@ export default {
       showAddExerciseModal.value = false
       await loadExerciseRecords()
     }
-    
+
     // 編輯運動記錄
     const editExercise = (exerciseId) => {
       // TODO: 實現編輯運動記錄功能
@@ -169,19 +185,19 @@ export default {
         showAddExerciseModal.value = true
       }
     }
-    
+
     // 刪除運動記錄
     const deleteExercise = async (exerciseId) => {
       // TODO: 實現刪除運動記錄功能
       console.log('刪除運動:', exerciseId)
       await loadExerciseRecords()
     }
-    
+
     // 初始化
     onMounted(() => {
       loadExerciseRecords()
     })
-    
+
     return {
       selectedDate,
       formattedDate,
@@ -215,6 +231,29 @@ export default {
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 20px;
+  margin: 16px 0;
+  justify-content: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 可以調整間距 */
+  font-size: 14px;
+  color: var(--text-color);
+}
+
+.filter-item select {
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
 .current-date {
@@ -344,7 +383,8 @@ export default {
   color: var(--danger-color);
 }
 
-.empty-state, .loading-state {
+.empty-state,
+.loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -353,7 +393,8 @@ export default {
   text-align: center;
 }
 
-.empty-state p, .loading-state p {
+.empty-state p,
+.loading-state p {
   margin-bottom: 16px;
   color: #666;
   font-size: 18px;
@@ -364,18 +405,18 @@ export default {
     flex-direction: column;
     gap: 20px;
   }
-  
+
   .exercise-item {
     flex-direction: column;
     align-items: flex-start;
   }
-  
+
   .exercise-calories {
     margin: 12px 0;
   }
-  
+
   .exercise-actions {
     align-self: flex-end;
   }
 }
-</style> 
+</style>

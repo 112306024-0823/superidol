@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Generator
 from flask import current_app
 from flask_jwt_extended import JWTManager, get_jwt_identity
-from ..database.models import User
+from app.services.auth_service import User
 from ..services.user_service import UserService
 
 jwt = JWTManager()

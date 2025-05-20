@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # 部署後端
-cd backend
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
+cd ../backend
+# source venv/bin/activate  # Linux/Mac
+source venv\Scripts\activate   # Windows
 python run.py &
 
 # 部署前端
