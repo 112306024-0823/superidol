@@ -1,102 +1,91 @@
-"""
-Authentication service functions.
-"""
 import pymysql
 import jwt
 from datetime import datetime, timedelta
 from app.db import get_db_connection
 from app.utils.security import hash_password, verify_password
 from app.config import Config
-
-print(f"[DEBUG] auth_service loaded from: {__file__}")
-print("[DEBUG] SQL will use table: Users")
+from app.services.restaurant_preference_service import insert_restaurant_preference
+from app.services.exercise_preference_service import insert_exercise_preference
 
 def register_user(data):
     """
-    Register a new user in the database.
-    
-    Args:
-        data (dict): User data containing name, email, and password
-        
-    Returns:
-        dict: Result of the registration process
+    註冊使用者並儲存其餐廳偏好
     """
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
-    
-    # Validate input
-    if not all([name, email, password]):
-        return {"error": "Name, email, and password are required"}
-    
-    # Hash the password
+    weight = data.get('weight')
+    budget = data.get('budget')
+    weekcalorielimit = data.get('weekcalorielimit')
+    restaurant_preferences = data.get('restaurant_preferences', [])
+    exercise_preferences = data.get('exercise_preferences', [])
+
+    if not all([name, email, password, weight, budget, weekcalorielimit]):
+        return {"error": "Missing required fields"}
+
     hashed_password = hash_password(password)
-    
-    # Connect to database
     conn = get_db_connection()
+
     try:
         with conn.cursor() as cursor:
-            # Check if email already exists
+            # 檢查 email 是否存在
             cursor.execute("SELECT * FROM Users WHERE Email = %s", (email,))
             if cursor.fetchone():
                 return {"error": "Email already exists"}
-            
-            # Create new user
-            cursor.execute(
-                "INSERT INTO Users (Name, Email, PasswordHash, Budget, WeekCalorieLimit) VALUES (%s, %s, %s, %s, %s)",
-                (name, email, hashed_password, 0, 0)
-            )
+
+            # 新增使用者
+            cursor.execute("""
+                INSERT INTO Users (Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (name, email, hashed_password, weight, budget, weekcalorielimit))
             user_id = cursor.lastrowid
+
+            # 新增餐廳偏好
+            for rid in restaurant_preferences:
+                insert_restaurant_preference(user_id, rid)
+                
+            #新增運動偏好
+            for exercise in exercise_preferences:
+                insert_exercise_preference(user_id, exercise)
+
         conn.commit()
-        
         return {
             "message": "User registered successfully",
             "user_id": user_id,
             "name": name,
             "email": email
         }
+
     except pymysql.Error as e:
         conn.rollback()
         return {"error": f"Database error: {str(e)}"}
     finally:
         conn.close()
 
+
 def login_user(data):
-    """
-    Authenticate a user and generate an access token.
-    
-    Args:
-        data (dict): User credentials containing email and password
-        
-    Returns:
-        dict: Authentication result with access token if successful
-    """
     email = data.get('email')
     password = data.get('password')
-    
-    # Validate input
+
     if not all([email, password]):
         return {"error": "Email and password are required"}
-    
-    # Connect to database
+
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            # Find user by email
             cursor.execute("SELECT UserID, Name, Email, PasswordHash FROM Users WHERE Email = %s", (email,))
             user = cursor.fetchone()
-            
+
             if not user or not verify_password(password, user['PasswordHash']):
                 return {"error": "Invalid email or password"}
-            
-            # Generate JWT token
+
             payload = {
                 'user_id': user['UserID'],
                 'email': user['Email'],
                 'exp': datetime.utcnow() + timedelta(seconds=Config.JWT_ACCESS_TOKEN_EXPIRES)
             }
             token = jwt.encode(payload, Config.JWT_SECRET_KEY, algorithm='HS256')
-            
+
             return {
                 "message": "Login successful",
                 "access_token": token,
@@ -109,4 +98,4 @@ def login_user(data):
     except pymysql.Error as e:
         return {"error": f"Database error: {str(e)}"}
     finally:
-        conn.close() 
+        conn.close()
