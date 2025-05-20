@@ -3,6 +3,7 @@
     <div class="container">
       <h1 class="page-title">食物搜尋</h1>
 
+
       <!-- 搜尋表單 -->
       <div class="form-container" @keydown.enter="handleSearch">
         <!-- 第一欄 -->
@@ -21,6 +22,7 @@
           </div>
         </div>
 
+
         <!-- 第二欄 -->
         <div class="form-col">
           <div class="form-group">
@@ -32,6 +34,7 @@
             <input type="text" class="bar_long" v-model="filters.restaurant" />
           </div>
         </div>
+
 
         <!-- 第三欄 -->
         <div class="form-col radio-col">
@@ -47,6 +50,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- 搜尋結果 -->
       <div v-if="searchResults.length > 0" class="search-results">
@@ -69,6 +73,7 @@
         </div>
       </div>
 
+
       <!-- 推薦清單 -->
       <div v-if="searchResults.length === 0 && !isLoading && !hasSearched" class="recommended-foods">
         <h2 class="section-title">推薦清單</h2>
@@ -90,15 +95,18 @@
         </div>
       </div>
 
+
       <!-- 無結果 -->
       <div v-if="searchResults.length === 0 && hasSearched && !isLoading" class="no-results">
         <p>未找到符合條件的食物</p>
       </div>
 
+
       <!-- 載入中 -->
       <div v-if="isLoading" class="loading-state">
         <p>載入中...</p>
       </div>
+
 
       <!-- Exercise Calculator Modal -->
       <div v-if="exerciseModal" class="modal-overlay">
@@ -117,6 +125,7 @@
           </div>
         </div>
       </div>
+
 
       <!-- Add to Record Modal -->
       <div v-if="showModal" class="modal-overlay">
@@ -140,24 +149,29 @@
         </div>
       </div>
 
+
     </div>
   </div>
 </template>
 
+
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+
 
 export default {
   name: 'FoodSearch',
   setup() {
     const router = useRouter() // 取得 router 實例
 
+
     const searchResults = ref([])
     const food_from_database = ref([])
     const recommendedFoods = ref([])
     const isLoading = ref(false)
     const hasSearched = ref(false)
+
 
     const filters = ref({
       priceMin: '',
@@ -169,9 +183,11 @@ export default {
       type: ''
     })
 
+
     const toggleType = (value) => {
       filters.value.type = filters.value.type === value ? '' : value
     }
+
 
     const exerciseModal = ref(false)
     const exerciseResults = ref({
@@ -181,13 +197,17 @@ export default {
     const exerciseSearch = ref('')
 
 
+
+
     const showModal = ref(false)
     const selectedMealType = ref('')
     const quantity = ref(1)
     const currentFood = ref(null)
 
+
     const handleSearch = () => {
       const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
+
 
       const allEmpty =
         priceMin === '' &&
@@ -198,10 +218,13 @@ export default {
         restaurant.trim() === '' &&
         type === ''
 
+
       if (allEmpty) return
+
 
       isLoading.value = true
       hasSearched.value = true
+
 
       setTimeout(() => {
         const filtered = food_from_database.value.filter(food => {
@@ -216,20 +239,24 @@ export default {
           )
         })
 
+
         searchResults.value = filtered
         isLoading.value = false
       }, 300)
     }
 
+
     const addToFavorites = (food) => {
       console.log('加入收藏:', food)
     }
 
-    //Exercise Calculator   
+
+    //Exercise Calculator  
     const openExerciseModal = (food) => {
       exerciseModal.value = true
       calculateExercise(food.calories)
     }
+
 
     const calculateExercise = (calories) => {
       // 假裝呼叫後端
@@ -239,11 +266,13 @@ export default {
       }, 300)
     }
 
+
     const closeExerciseModal = () => {
       exerciseModal.value = false
       exerciseResults.value = { running: '', swimming: '' }
       exerciseSearch.value = ''
     }
+
 
     //Add to Record
     const addToFoodRecord = (food) => {
@@ -251,12 +280,14 @@ export default {
       showModal.value = true
     }
 
+
     const closeModal = () => {
       showModal.value = false
       selectedMealType.value = ''
       quantity.value = 1
       currentFood.value = null
     }
+
 
     const saveRecord = () => {
       if (!selectedMealType.value) {
@@ -274,14 +305,17 @@ export default {
         quantity: quantity.value
       }
 
+
       // 跳轉到 FoodRecord 頁面並帶參數
       router.push({
         name: 'FoodRecord', // 請確認路由名稱
         query: foodData
       })
 
+
       closeModal()
     }
+
 
     onMounted(() => {
       isLoading.value = true
@@ -301,6 +335,7 @@ export default {
         isLoading.value = false
       }, 500)
     })
+
 
     return {
       filters,
@@ -329,16 +364,19 @@ export default {
 }
 </script>
 
+
 <style scoped>
 .food-search-page {
   padding: 20px 0;
 }
+
 
 .page-title {
   margin-bottom: 24px;
   font-size: 28px;
   color: var(--text-color);
 }
+
 
 .form-container {
   display: flex;
@@ -347,21 +385,25 @@ export default {
   margin-bottom: 24px;
 }
 
+
 .form-col {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
+
 .radio-col {
   margin-top: 4px;
 }
+
 
 .form-group {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 
 .form-group button {
   background-color: rgb(255, 192, 76);
@@ -373,9 +415,12 @@ export default {
   transition: background-color 0.3s;
 }
 
+
 .form-group button:hover {
   background-color: orange;
 }
+
+
 
 
 .bar_short {
@@ -383,9 +428,11 @@ export default {
   width: 8dvb;
 }
 
+
 .bar_long {
   border-radius: 5px;
 }
+
 
 .section-title {
   font-size: 20px;
@@ -393,12 +440,14 @@ export default {
   color: var(--text-color);
 }
 
+
 .food-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
   margin-bottom: 32px;
 }
+
 
 .food-card {
   background: #fff;
@@ -411,9 +460,11 @@ export default {
   gap: 20px;
 }
 
+
 .food-info {
   flex: 1;
 }
+
 
 .food-actions {
   display: flex;
@@ -421,6 +472,7 @@ export default {
   gap: 4px;
   justify-content: center;
 }
+
 
 .food-actions button {
   background-color: #ffeb85;
@@ -431,9 +483,12 @@ export default {
   transition: background-color 0.3s;
 }
 
+
 .food-actions button:hover {
   background-color: rgb(255, 192, 76);
 }
+
+
 
 
 .no-results,
@@ -446,11 +501,13 @@ export default {
   margin-top: 24px;
 }
 
+
 .no-results p,
 .loading-state p {
   color: #666;
   font-size: 18px;
 }
+
 
 .modal {
   position: fixed;
@@ -464,9 +521,11 @@ export default {
   max-width: 300px;
 }
 
+
 .modal-content {
   position: relative;
 }
+
 
 .close-button {
   position: absolute;
@@ -477,6 +536,7 @@ export default {
   font-size: 20px;
   cursor: pointer;
 }
+
 
 .modal-overlay {
   position: fixed;
@@ -491,6 +551,7 @@ export default {
   z-index: 999;
 }
 
+
 .modal {
   background: #fff;
   padding: 24px;
@@ -501,6 +562,7 @@ export default {
   flex-direction: column;
   gap: 16px;
 }
+
 
 .close-button {
   position: absolute;
@@ -513,12 +575,14 @@ export default {
   cursor: pointer;
 }
 
+
 .modal-row {
   display: flex;
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
 }
+
 
 .modal-row button {
   background-color: #ffeb85;
@@ -531,8 +595,12 @@ export default {
   transition: background-color 0.3s;
 }
 
+
 .modal-row button:hover {
   background-color: #f5d94b;
   /* 深一點的鵝黃色 */
 }
 </style>
+
+
+
