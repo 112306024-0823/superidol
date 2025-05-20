@@ -75,7 +75,7 @@ def login():
         if not data:
             return jsonify({"error": "No input data provided"}), 400
             
-        # Call the service function to login user
+        # Call the service function to login user 
         result = login_user(data)
         
         if 'error' in result:

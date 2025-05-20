@@ -12,6 +12,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 from config import Config
 
+
+
 def get_db_connection():
     """
     獲取資料庫連接
@@ -100,3 +102,4 @@ def execute_transaction(queries_and_params):
         raise
     finally:
         conn.close() 
+        

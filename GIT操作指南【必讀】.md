@@ -222,6 +222,7 @@ git push origin yuki
    git add 衝突文件路徑
    ```
 
+
 5. **完成合併**：
    ```bash
    git commit -m "解決合併衝突"
@@ -319,3 +320,113 @@ git push origin --force --all
 記住：Git 是一個強大的工具，可以幫助你管理代碼，但也有潛在的風險。請謹慎使用破壞性操作（如 `--force` 和 `--hard`）。
 
 如有更多 Git 相關問題，請參考 [Git 官方文檔](https://git-scm.com/doc) 
+
+# Mac 環境下 API 連接失敗的完整排查方案
+
+這種情況很可能是 Mac 系統特有的網絡設置或權限問題，以下是系統性的排查步驟：
+
+## 1. 後端服務狀態檢查
+
+```bash
+# 確認後端是否運行
+ps aux | grep python
+# 或
+ps aux | grep flask
+
+# 查看5000端口是否被使用
+lsof -i :5000
+```
+
+## 2. 網絡連接測試
+
+```bash
+# 測試本地網絡
+ping localhost
+
+# 嘗試使用curl訪問API
+curl http://localhost:5000/api/test-cors
+# 或
+curl http://127.0.0.1:5000/api/test-cors
+```
+
+## 3. Mac 特有問題排查
+
+### 網絡配置問題
+```bash
+# 檢查hosts文件
+cat /etc/hosts
+# 確保有 "127.0.0.1 localhost" 這一行
+
+# 檢查網絡接口
+ifconfig lo0
+# 確保loopback接口啟動
+```
+
+### 防火牆設置
+1. 打開「系統設置」>「網絡」>「防火牆」
+2. 暫時關閉防火牆進行測試
+3. 如果關閉後工作正常，重新開啟並添加Flask應用例外
+
+## 4. 前端配置檢查
+
+```bash
+# 檢查前端API配置
+cat super-idol/frontend/src/services/api.js
+```
+
+將baseURL修改為：
+```javascript
+// 嘗試使用IP地址而非localhost
+const baseURL = 'http://127.0.0.1:5000/api';
+```
+
+## 5. 後端CORS設置確認
+
+```bash
+# 查看後端CORS配置
+cat super-idol/backend/app/__init__.py
+```
+
+確保CORS設置為：
+```python
+CORS(app, resources={r"/*": {"origins": "*"}})
+```
+
+## 6. Mac專用解決方案
+
+### 嘗試使用不同端口
+```bash
+# 編輯.env文件
+echo "PORT=8080" >> super-idol/backend/.env
+
+# 重啟後端
+# 然後修改前端API地址為 http://127.0.0.1:8080/api
+```
+
+### 使用特定網絡接口
+修改run.py文件：
+```python
+app.run(host='127.0.0.1', port=5000, debug=True)
+```
+
+## 7. 特殊權限問題
+
+某些Mac版本(尤其是M1/M2芯片)可能有特殊的安全機制：
+```bash
+# 嘗試以管理員權限運行
+sudo python3 run.py
+
+# 檢查應用程序權限
+ls -la super-idol/backend/run.py
+chmod +x super-idol/backend/run.py
+```
+
+## 8. 查看瀏覽器Console錯誤
+
+打開瀏覽器開發者工具(F12)，查看Console標籤中的具體錯誤信息。
+錯誤訊息會提供更多線索，比如：
+- "Network Error" - 表示無法連接
+- "CORS error" - 表示跨域問題
+- 具體HTTP錯誤碼
+
+如果以上步驟都不能解決問題，請提供瀏覽器控制台的具體錯誤訊息，以便進一步診斷。 
