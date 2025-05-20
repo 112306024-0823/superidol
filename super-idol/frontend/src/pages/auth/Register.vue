@@ -24,6 +24,41 @@
           />
         </el-form-item>
         
+        
+        <el-form-item label="預算" prop="budget">
+  <el-input-number 
+    v-model="form.budget" 
+    :min="0" 
+    placeholder="請輸入預算" 
+    controls-position="right"
+    style="width: 100%;"
+  />
+</el-form-item>
+
+<el-form-item label="每週熱量限制" prop="calorieLimit">
+  <el-input-number 
+    v-model="form.calorieLimit" 
+    :min="0" 
+    placeholder="請輸入每週熱量限制" 
+    controls-position="right"
+    style="width: 100%;"
+  />
+</el-form-item>
+
+<el-form-item label="飲食偏好" prop="foodPreference">
+  <el-input 
+    v-model="form.foodPreference" 
+    placeholder="請輸入飲食偏好"
+  />
+</el-form-item>
+
+<el-form-item label="運動偏好" prop="exercisePreference">
+  <el-input 
+    v-model="form.exercisePreference" 
+    placeholder="請輸入運動偏好"
+  />
+</el-form-item>
+
         <el-form-item label="電子郵件" prop="email">
           <el-input 
             v-model="form.email"
@@ -101,6 +136,7 @@ export default {
     const authStore = useAuthStore()
     const registerForm = ref(null)
     const formIsValid = ref(true) // 設為true以允許提交
+    const isSubmitAttempted = ref(false)
     const passwordResult = ref({
       isValid: false,
       message: '',
@@ -111,78 +147,144 @@ export default {
       name: '',
       email: '',
       password: '',
-      confirmPassword: ''
+      confirmPassword: '',
+      budget: null,
+  calorieLimit: null,
+  foodPreference: '',
+  exercisePreference: ''
     })
     
     const localError = ref('')
     
-    // 定義表單驗證規則
-    const rules = {
-      name: [
-        { required: true, message: '請輸入姓名', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (!value) {
-              callback(new Error('請輸入姓名'))
-            } else if (!isValidName(value)) {
-              callback(new Error('姓名至少需要2個字符'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: ['blur', 'change'] 
+  const rules = {
+  name: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          // 尚未提交且空白，不顯示錯誤
+          callback()
+          return
         }
-      ],
-      email: [
-        { required: true, message: '請輸入電子郵件', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (!value) {
-              callback(new Error('請輸入電子郵件'))
-            } else if (!isValidEmail(value)) {
-              callback(new Error('請輸入有效的電子郵件地址'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: ['blur', 'change'] 
+        if (!value) {
+          callback(new Error('請輸入姓名'))
+        } else if (!isValidName(value)) {
+          callback(new Error('姓名至少需要2個字符'))
+        } else {
+          callback()
         }
-      ],
-      password: [
-        { required: true, message: '請輸入密碼', trigger: 'blur' },
-        { min: 8, message: '密碼長度必須至少為8個字符', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            const result = validatePassword(value)
-            if (!result.isValid) {
-              callback(new Error(result.message))
-            } else {
-              // 當密碼變更時，同時檢查確認密碼
-              if (form.confirmPassword) {
-                registerForm.value?.validateField('confirmPassword')
-              }
-              callback()
-            }
-          }, 
-          trigger: ['blur', 'change'] 
-        }
-      ],
-      confirmPassword: [
-        { required: true, message: '請再次輸入密碼', trigger: 'blur' },
-        { 
-          validator: (rule, value, callback) => {
-            if (!value) {
-              callback(new Error('請再次輸入密碼'))
-            } else if (!doPasswordsMatch(form.password, value)) {
-              callback(new Error('兩次輸入的密碼不一致'))
-            } else {
-              callback()
-            }
-          }, 
-          trigger: ['blur', 'change'] 
-        }
-      ]
+      },
+      trigger: ['blur', 'change']
     }
+  ],
+  budget: [
+  {
+    validator: (rule, value, callback) => {
+      if (value == null || value === '') {
+        callback()
+      } else if (value < 0) {
+        callback(new Error('預算不能是負數'))
+      } else {
+        callback()
+      }
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+calorieLimit: [
+  {
+    validator: (rule, value, callback) => {
+      if (value == null || value === '') {
+        callback()
+      } else if (value < 0) {
+        callback(new Error('每週熱量限制不能是負數'))
+      } else {
+        callback()
+      }
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+foodPreference: [
+  {
+    validator: (rule, value, callback) => {
+      callback() // 選填，不做嚴格限制
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+exercisePreference: [
+  {
+    validator: (rule, value, callback) => {
+      callback() // 選填，不做嚴格限制
+    },
+    trigger: ['blur', 'change']
+  }
+],
+
+  email: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          callback()
+          return
+        }
+        if (!value) {
+          callback(new Error('請輸入電子郵件'))
+        } else if (!isValidEmail(value)) {
+          callback(new Error('請輸入有效的電子郵件地址'))
+        } else {
+          callback()
+        }
+      },
+      trigger: ['blur', 'change']
+    }
+  ],
+  password: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          callback()
+          return
+        }
+        if (!value) {
+          callback(new Error('請輸入密碼'))
+        } else if (value.length < 8) {
+          callback(new Error('密碼長度必須至少為8個字符'))
+        } else {
+          const result = validatePassword(value)
+          if (!result.isValid) {
+            callback(new Error(result.message))
+          } else {
+            callback()
+          }
+        }
+      },
+      trigger: ['blur', 'change']
+    }
+  ],
+  confirmPassword: [
+    {
+      validator: (rule, value, callback) => {
+        if (!isSubmitAttempted.value && !value) {
+          callback()
+          return
+        }
+        if (!value) {
+          callback(new Error('請再次輸入密碼'))
+        } else if (!doPasswordsMatch(form.password, value)) {
+          callback(new Error('兩次輸入的密碼不一致'))
+        } else {
+          callback()
+        }
+      },
+      trigger: ['blur', 'change']
+    }
+  ]
+}
+
     
     // 檢查密碼強度
     const checkPasswordStrength = () => {
@@ -206,24 +308,21 @@ export default {
       }
     }
     
-    // 表單提交時先進行驗證
-    const submitForm = () => {
-      if (!registerForm.value) {
-        // 如果表單ref不存在，直接執行註冊邏輯
-        handleRegister();
-        return;
-      }
-      
-      registerForm.value.validate((valid) => {
-        if (valid) {
-          handleRegister();
-        } else {
-          // 即使表單驗證失敗，也允許用戶嘗試註冊
-          console.log('表單驗證失敗，但仍嘗試註冊');
-          handleRegister();
-        }
-      });
+  const submitForm = () => {
+  isSubmitAttempted.value = true
+  if (!registerForm.value) {
+    handleRegister()
+    return
+  }
+  registerForm.value.validate(valid => {
+    if (valid) {
+      handleRegister()
+    } else {
+      console.log('表單驗證失敗，顯示錯誤訊息')
     }
+  })
+}
+
     
     const handleRegister = async () => {
       if (form.password !== form.confirmPassword) {
@@ -237,7 +336,11 @@ export default {
         await authStore.register({
           name: form.name,
           email: form.email,
-          password: form.password
+          password: form.password,
+          budget: form.budget,
+  calorieLimit: form.calorieLimit,
+  foodPreference: form.foodPreference,
+  exercisePreference: form.exercisePreference
         })
         
         // 註冊成功，導航到儀表板
@@ -280,6 +383,7 @@ export default {
       validateConfirmPassword,
       checkPasswordStrength,
       passwordResult,
+      isSubmitAttempted,
       formIsValid,
       isLoading: computed(() => authStore.isLoading),
       authError
@@ -300,6 +404,9 @@ export default {
 .auth-container {
   width: 100%;
   max-width: 440px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+  border-radius: 8px;
 }
 
 .auth-header {
@@ -308,26 +415,88 @@ export default {
 }
 
 .auth-header h1 {
-  color: #ffa940;
+  color: #ffa940; /* 橘色 */
   margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 2.2rem;
+}
+
+.auth-header p {
+  color: #303133; /* 深灰/黑色 */
+  font-weight: 600;
+  font-size: 1.2rem;
 }
 
 .auth-form {
   margin-top: 20px;
 }
 
+/* 全部表單欄位垂直排列 */
+.auth-form >>> .el-form-item {
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+
+
+/* 輸入框寬度全滿 */
+.auth-form >>> .el-form-item__content {
+  width: 100%;
+}
+
+
+/* 讓表單標籤跟輸入框垂直排列 */
+.auth-form >>> .el-form-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.auth-form >>> .el-form-item__label {
+  padding: 0 0 6px 0;
+  font-weight: 600;
+  color: #606266;
+}
+
+/* 輸入框寬度全滿 */
+.auth-form >>> .el-form-item__content {
+  width: 100%;
+}
+
+/* 按鈕橘色風格 */
 .register-btn {
   width: 100%;
+  background-color: #ffa940;
+  border-color: #ffa940;
+  color: white;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+  border-radius: 4px;
+}
+
+.register-btn:hover {
+  background-color: #d48806;
+  border-color: #d48806;
+}
+
+/* 立即登入橘色連結 */
+.auth-footer .el-link {
+  color: #ffa940 !important;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .auth-footer {
   text-align: center;
   margin-top: 16px;
+  font-size: 14px;
 }
 
+/* 密碼強度提示 */
 .password-strength {
   margin-top: 5px;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .password-strength.weak {
@@ -343,7 +512,7 @@ export default {
 }
 
 .password-strength.strong {
-  color: #1890ff;
+  color: #ffa940; /* 強調橘色 */
 }
 
 .password-strength.error {

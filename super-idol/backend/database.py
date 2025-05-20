@@ -15,13 +15,14 @@ env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
 if not os.path.exists(env_path):
     logger.warning(f".env file not found at {env_path}")
 load_dotenv(env_path)
-
+#ssd
+#ssd12
 # Database configuration
 DB_USER = os.getenv("DB_USER")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_PORT = os.getenv("DB_PORT", "3306")  # Default MySQL port
-DB_NAME = "superidol"  # 修改為正確的資料庫名稱
+DB_NAME = "superidol"  # 修改為正確的資料庫名稱!
 
 # Validate required environment variables
 required_vars = {
@@ -89,7 +90,8 @@ def get_db() -> Generator:
     finally:
         db.close()
 
-# 測試連接（當直接執行此檔案時）
+# 測試連接（當直接執行此檔案時）ss
+# 早安阿今天過得好嗎
 if __name__ == "__main__":
     print("Testing database connection...")
     try:
