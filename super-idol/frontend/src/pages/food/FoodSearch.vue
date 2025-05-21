@@ -137,7 +137,7 @@
             <label><input type="radio" value="午餐" v-model="selectedMealType" /> 午餐</label>
             <label><input type="radio" value="晚餐" v-model="selectedMealType" /> 晚餐</label>
             <label><input type="radio" value="點心" v-model="selectedMealType" /> 點心</label>
-          </div>
+          </div>*
           <div class="modal-row">
             <label>選擇數量</label>
             <input type="number" v-model="quantity" min="1" />
@@ -145,7 +145,7 @@
           <div class="modal-row">
             <button @click="closeModal">Cancel</button>
             <button @click="saveRecord">Save</button>
-          </div>
+          </div>*
         </div>
       </div>
 
@@ -156,8 +156,10 @@
 
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
+import { ElMessage } from 'element-plus'
 
 
 export default {
@@ -171,6 +173,7 @@ export default {
     const recommendedFoods = ref([])
     const isLoading = ref(false)
     const hasSearched = ref(false)
+    const userPreferences = ref(null)
 
 
     const filters = ref({
@@ -243,8 +246,21 @@ export default {
     }
 
 
-    const addToFavorites = (food) => {
-      console.log('加入收藏:', food)
+    const addToFavorites = async (food) => {
+      try {
+        // 從 localStorage 獲取 userId，實際環境應從認證系統獲取
+        const userId = localStorage.getItem('userId') || '1'
+        
+        await axios.post('/api/food/favorites', {
+          user_id: userId,
+          food_id: food.id
+        })
+        
+        ElMessage.success('已添加到我的最愛')
+      } catch (error) {
+        console.error('添加到收藏失敗:', error)
+        ElMessage.error('添加到收藏失敗，請稍後再試')
+      }
     }
 
 
@@ -318,6 +334,9 @@ export default {
       isLoading.value = true
       hasSearched.value = false // 重置搜尋狀態
       
+      // 獲取用戶的偏好設置
+      await loadUserPreferences()
+      
       try {
         // 從後端獲取食物資料
         const response = await fetch('http://localhost:5000/food/')
@@ -325,13 +344,8 @@ export default {
         
         if (Array.isArray(data)) {
           food_from_database.value = data
-          // 確保有資料時才設定推薦清單
-          if (data.length > 0) {
-            recommendedFoods.value = data.slice(0, 4) // 顯示前四筆作為推薦
-          } else {
-            console.log('沒有找到任何食物資料')
-            recommendedFoods.value = []
-          }
+          // 根據用戶偏好推薦食物
+          generateRecommendations()
         } else {
           console.error('Unexpected response format:', data)
           recommendedFoods.value = []
@@ -343,6 +357,79 @@ export default {
         isLoading.value = false
       }
     })
+    
+    // 載入用戶偏好
+    const loadUserPreferences = async () => {
+      try {
+        // 實際開發時應從API獲取用戶偏好
+        // 這裡先從localStorage讀取個人資料中的偏好信息
+        const storedProfile = localStorage.getItem('userProfile')
+        
+        if (storedProfile) {
+          const profileData = JSON.parse(storedProfile)
+          userPreferences.value = {
+            foodPreferences: profileData.foodPreferences || {},
+            dietaryRestrictions: profileData.dietaryRestrictions || {},
+            spicyLevel: profileData.spicyLevel || 0,
+            priceRange: profileData.priceRange || 3
+          }
+        } else {
+          // 如果沒有存儲的偏好，使用默認值
+          userPreferences.value = {
+            foodPreferences: { chinese: true, western: true },
+            dietaryRestrictions: {},
+            spicyLevel: 1,
+            priceRange: 3
+          }
+        }
+      } catch (error) {
+        console.error('載入用戶偏好失敗:', error)
+        // 使用默認值
+        userPreferences.value = {
+          foodPreferences: { chinese: true, western: true },
+          dietaryRestrictions: {},
+          spicyLevel: 1,
+          priceRange: 3
+        }
+      }
+    }
+    
+    // 根據用戶偏好產生推薦
+    const generateRecommendations = () => {
+      if (!userPreferences.value || food_from_database.value.length === 0) {
+        recommendedFoods.value = food_from_database.value.slice(0, 4) // 如果沒有偏好，顯示前四筆
+        return
+      }
+      
+      // 根據用戶偏好計算每個食物的適配分數
+      const foodWithScores = food_from_database.value.map(food => {
+        let score = 0
+        
+        // 價格範圍評分 (1-5分)，越接近用戶偏好價格範圍得分越高
+        const priceLevel = Math.ceil((food.price || 0) / 100) // 簡單轉換，每100元一個級別
+        score += 5 - Math.abs(priceLevel - userPreferences.value.priceRange)
+        
+        // 食物類型偏好 (+3分)
+        const foodType = food.type === '中式' ? 'chinese' : 
+                         food.type === '西式' ? 'western' :
+                         food.type === '日式' ? 'japanese' :
+                         food.type === '韓式' ? 'korean' : 'other'
+        if (userPreferences.value.foodPreferences[foodType]) {
+          score += 3
+        }
+        
+        // 營養考量 (卡路里打分，假設用戶想要中等卡路里的食物，偏離中值越遠分數越低)
+        const idealCalories = 500 // 中等卡路里基準值
+        const caloriesDiff = Math.abs((food.calories || 0) - idealCalories)
+        score += caloriesDiff < 100 ? 2 : caloriesDiff < 200 ? 1 : 0
+        
+        return { ...food, score }
+      })
+      
+      // 按分數排序並取前面的項目作為推薦
+      const sortedFoods = [...foodWithScores].sort((a, b) => b.score - a.score)
+      recommendedFoods.value = sortedFoods.slice(0, 6) // 取前6個作為推薦
+    }
 
 
     return {

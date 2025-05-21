@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Dashboard from '../pages/Dashboard.vue'
 import Login from '../pages/auth/Login.vue'
 import Register from '../pages/auth/Register.vue'
+import UserPreferences from '../pages/auth/UserPreferences.vue'
 import BasicInfo from '../pages/profile/BasicInfo.vue'
 import MyFavorite from '../pages/profile/MyFavorite.vue'
 import Preferences from '../pages/profile/Preferences.vue'
@@ -26,6 +27,12 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/preferences',
+    name: 'UserPreferences',
+    component: UserPreferences,
     meta: { requiresAuth: false }
   },
   {

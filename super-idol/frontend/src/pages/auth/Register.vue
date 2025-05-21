@@ -8,6 +8,12 @@
       
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
+      <div class="progress-bar">
+        <div class="step active">基本資訊</div>
+        <div class="step">偏好設定</div>
+        <div class="step">完成</div>
+      </div>
+      
       <el-form 
         @submit.native.prevent="handleRegister" 
         class="auth-form" 
@@ -32,40 +38,6 @@
             placeholder="請輸入您的體重（必填）" 
             controls-position="right"
             style="width: 100%;"
-          />
-        </el-form-item>
-        
-        <el-form-item label="每餐預算 *" prop="budget">
-          <el-input-number 
-            v-model="form.budget" 
-            :min="0" 
-            placeholder="請輸入預算（必填）" 
-            controls-position="right"
-            style="width: 100%;"
-          />
-        </el-form-item>
-
-        <el-form-item label="每週熱量限制 *" prop="calorieLimit">
-          <el-input-number 
-            v-model="form.calorieLimit" 
-            :min="0" 
-            placeholder="請輸入每週熱量限制（必填）" 
-            controls-position="right"
-            style="width: 100%;"
-          />
-        </el-form-item>
-
-        <el-form-item label="飲食偏好" prop="foodPreference">
-          <el-input 
-            v-model="form.foodPreference" 
-            placeholder="多種偏好請用逗號分隔，例如：義大利麵,壽司,火鍋"
-          />
-        </el-form-item>
-
-        <el-form-item label="運動偏好" prop="exercisePreference">
-          <el-input 
-            v-model="form.exercisePreference" 
-            placeholder="多種偏好請用逗號分隔，例如：籃球,快走,游泳"
           />
         </el-form-item>
 
@@ -114,7 +86,7 @@
             @click="submitForm" 
             class="register-btn"
           >
-            {{ isLoading ? '註冊中...' : '註冊' }}
+            下一步
           </el-button>
         </el-form-item>
       </el-form>
@@ -137,6 +109,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { User, Message, Lock } from '@element-plus/icons-vue'
 import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
+import api from '../../services/api'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'RegisterPage',
@@ -159,10 +133,6 @@ export default {
       password: '',       // 必填
       confirmPassword: '',
       weight: null,       // 必填（用於計算健康目標）
-      budget: null,       // 必填（每餐預算）
-      calorieLimit: null, // 必填（每週熱量限制）
-      foodPreference: '',
-      exercisePreference: ''
     })
     
     const localError = ref('')
@@ -196,63 +166,11 @@ export default {
             }
             if (value == null || value === '') {
               callback(new Error('請輸入體重'))
-            } else if (value < 30 || value > 200) {
+            } else if (value < 20 || value > 200) {
               callback(new Error('體重需在合理範圍內'))
             } else {
               callback()
             }
-          },
-          trigger: ['blur', 'change']
-        }
-      ],
-      budget: [
-        {
-          validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && value == null) {
-              callback()
-              return
-            }
-            if (value == null || value === '') {
-              callback(new Error('請輸入預算'))
-            } else if (value < 0) {
-              callback(new Error('預算不能是負數'))
-            } else {
-              callback()
-            }
-          },
-          trigger: ['blur', 'change']
-        }
-      ],
-      calorieLimit: [
-        {
-          validator: (rule, value, callback) => {
-            if (!isSubmitAttempted.value && value == null) {
-              callback()
-              return
-            }
-            if (value == null || value === '') {
-              callback(new Error('請輸入每週熱量限制'))
-            } else if (value < 0) {
-              callback(new Error('每週熱量限制不能是負數'))
-            } else {
-              callback()
-            }
-          },
-          trigger: ['blur', 'change']
-        }
-      ],
-      foodPreference: [
-        {
-          validator: (rule, value, callback) => {
-            callback() // 選填，不做嚴格限制
-          },
-          trigger: ['blur', 'change']
-        }
-      ],
-      exercisePreference: [
-        {
-          validator: (rule, value, callback) => {
-            callback() // 選填，不做嚴格限制
           },
           trigger: ['blur', 'change']
         }
@@ -367,44 +285,28 @@ export default {
         return
       }
       
-      // 特別檢查體重、預算、熱量限制
+      // 特別檢查體重
       if (form.weight === null || form.weight === '') {
         localError.value = '請填寫您的體重'
         if (registerForm.value) registerForm.value.validateField('weight')
         return
       }
       
-      if (form.budget === null || form.budget === '') {
-        localError.value = '請填寫每餐預算'
-        if (registerForm.value) registerForm.value.validateField('budget')
-        return
-      }
-      
-      if (form.calorieLimit === null || form.calorieLimit === '') {
-        localError.value = '請填寫每週熱量限制'
-        if (registerForm.value) registerForm.value.validateField('calorieLimit')
-        return
-      }
-      
       localError.value = ''
       
-      try {
-        await authStore.register({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          weight: form.weight,
-          budget: form.budget,
-          calorieLimit: form.calorieLimit,
-          foodPreference: form.foodPreference,
-          exercisePreference: form.exercisePreference
-        })
-        
-        // 註冊成功，導航到儀表板
-        router.push('/dashboard')
-      } catch (error) {
-        console.error('註冊失敗:', error)
+      // 創建包含必要註冊資訊的物件
+      const registrationData = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        weight: form.weight
       }
+      
+      // 將註冊資料保存到會話存儲
+      sessionStorage.setItem('registrationData', JSON.stringify(registrationData))
+      
+      // 簡單導向偏好設置頁面，不通過路由參數傳遞數據
+      router.push('/preferences')
     }
     
     const authError = computed(() => {
@@ -460,10 +362,53 @@ export default {
 
 .auth-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 700px;
   padding: 24px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
   border-radius: 8px;
+}
+
+.progress-bar {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+  position: relative;
+}
+
+.progress-bar::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #e0e0e0;
+  z-index: 0;
+}
+
+.step {
+  position: relative;
+  width: 32%;
+  text-align: center;
+  padding: 10px;
+  background-color: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.step.completed {
+  background-color: #f0fcf0;
+  border-color: #67c23a;
+  color: #67c23a;
+}
+
+.step.active {
+  background-color: #fff8e6;
+  border-color: #f08c00;
+  color: #f08c00;
+  font-weight: 600;
 }
 
 .auth-header {
