@@ -42,16 +42,68 @@ class FoodService:
 
 def search_food(filters):
     """
-    Search for food items based on filters.
-    
-    Args:
-        filters (dict): Search filters
-        
-    Returns:
-        list: Matching food items
+    搜尋符合條件的食物清單
     """
-    # TODO: Implement food search logic
-    return []
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            sql = """
+                SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Set_Type, r.Name AS Restaurant
+                FROM Food f
+                LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
+                WHERE 1 = 1
+            """
+            params = []
+
+            if filters.get('priceMin'):
+                sql += " AND f.Price >= %s"
+                params.append(float(filters['priceMin']))
+
+            if filters.get('priceMax'):
+                sql += " AND f.Price <= %s"
+                params.append(float(filters['priceMax']))
+
+            if filters.get('calMin'):
+                sql += " AND f.Calories >= %s"
+                params.append(float(filters['calMin']))
+
+            if filters.get('calMax'):
+                sql += " AND f.Calories <= %s"
+                params.append(float(filters['calMax']))
+
+            if filters.get('name'):
+                sql += " AND f.Name LIKE %s"
+                params.append(f"%{filters['name']}%")
+
+            if filters.get('restaurant'):
+                sql += " AND r.Name LIKE %s"
+                params.append(f"%{filters['restaurant']}%")
+
+            if filters.get('type'):
+                sql += " AND f.Set_Type = %s"
+                params.append(filters['type'])
+
+            cursor.execute(sql, params)
+            rows = cursor.fetchall()
+            
+            # 將資料庫結果轉換為 JSON 格式
+            results = []
+            for row in rows:
+                results.append({
+                    'id': row[0],
+                    'name': row[1],
+                    'calories': row[2],
+                    'price': row[3],
+                    'type': row[4],
+                    'restaurant': row[5]
+                })
+            
+            return results
+
+    except Exception as e:
+        raise Exception(f"Database error: {str(e)}")
+    finally:
+        conn.close()
 
 def add_food_record(user_id, food_data):
     """

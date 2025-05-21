@@ -62,7 +62,7 @@
               <p>餐廳 : {{ food.restaurant }}</p>
               <p>價格 : {{ food.price }} 元</p>
               <p>熱量 : {{ food.calories }} 大卡</p>
-              <p>類別 : {{ food.type }} </p>
+              <p>類別 : {{ food.type }}</p>
             </div>
             <div class="food-actions">
               <button @click="openExerciseModal(food)">Exercise Calculator</button>
@@ -75,7 +75,7 @@
 
 
       <!-- 推薦清單 -->
-      <div v-if="searchResults.length === 0 && !isLoading && !hasSearched" class="recommended-foods">
+      <div v-if="!hasSearched && recommendedFoods.length > 0" class="recommended-foods">
         <h2 class="section-title">推薦清單</h2>
         <div class="food-grid">
           <div class="food-card" v-for="(food, index) in recommendedFoods" :key="index">
@@ -84,7 +84,7 @@
               <p>餐廳 : {{ food.restaurant }}</p>
               <p>價格 : {{ food.price }} 元</p>
               <p>熱量 : {{ food.calories }} 大卡</p>
-              <p>類別 : {{ food.type }} </p>
+              <p>類別 : {{ food.type }}</p>
             </div>
             <div class="food-actions">
               <button @click="openExerciseModal(food)">Exercise Calculator</button>
@@ -97,7 +97,7 @@
 
 
       <!-- 無結果 -->
-      <div v-if="searchResults.length === 0 && hasSearched && !isLoading" class="no-results">
+      <div v-if="hasSearched && searchResults.length === 0 && !isLoading" class="no-results">
         <p>未找到符合條件的食物</p>
       </div>
 
@@ -205,7 +205,7 @@ export default {
     const currentFood = ref(null)
 
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
       const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
 
 
@@ -218,9 +218,7 @@ export default {
         restaurant.trim() === '' &&
         type === ''
 
-
       if (allEmpty) return
-
 
       isLoading.value = true
       hasSearched.value = true
@@ -239,10 +237,9 @@ export default {
           )
         })
 
-
         searchResults.value = filtered
         isLoading.value = false
-      }, 300)
+      }
     }
 
 
@@ -317,23 +314,34 @@ export default {
     }
 
 
-    onMounted(() => {
+    onMounted(async () => {
       isLoading.value = true
-      setTimeout(() => {
-        //推薦清單
-        recommendedFoods.value = [
-          { name: '漢堡1', restaurant: '麥當勞1', calories: 100, price: 190, type: '單點' },
-          { name: '薯條1', restaurant: '摩斯1', calories: 200, price: 180, type: '套餐' },
-          { name: '雞塊1', restaurant: 'MOS1', calories: 180, price: 60, type: '單點' },
-        ]
-        //搜尋結果
-        food_from_database.value = [
-          { name: '漢堡2', restaurant: '麥當勞2', calories: 850, price: 190, type: '單點' },
-          { name: '薯條2', restaurant: '摩斯2', calories: 150, price: 180, type: '套餐' },
-          { name: '雞塊2', restaurant: 'MOS2', calories: 400, price: 200, type: '套餐' }
-        ]
+      hasSearched.value = false // 重置搜尋狀態
+      
+      try {
+        // 從後端獲取食物資料
+        const response = await fetch('http://localhost:5000/food/')
+        const data = await response.json()
+        
+        if (Array.isArray(data)) {
+          food_from_database.value = data
+          // 確保有資料時才設定推薦清單
+          if (data.length > 0) {
+            recommendedFoods.value = data.slice(0, 4) // 顯示前四筆作為推薦
+          } else {
+            console.log('沒有找到任何食物資料')
+            recommendedFoods.value = []
+          }
+        } else {
+          console.error('Unexpected response format:', data)
+          recommendedFoods.value = []
+        }
+      } catch (error) {
+        console.error('載入食物失敗:', error)
+        recommendedFoods.value = []
+      } finally {
         isLoading.value = false
-      }, 500)
+      }
     })
 
 

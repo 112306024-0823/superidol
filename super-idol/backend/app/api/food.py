@@ -3,27 +3,32 @@ Food API endpoints.
 """
 
 from flask import Blueprint, request, jsonify
+from ..services.food_service import search_food
+from flask_cors import CORS
 
 food_bp = Blueprint('food', __name__)
+CORS(food_bp)  # 啟用 CORS
 
-@food_bp.route('/search', methods=['GET'])
-def search_food():
+@food_bp.route('/', methods=['GET'])
+def get_foods():
     """
-    Search for food items.
-    ---
-    Parameters:
-      - name: Query string for food name
-      - price_min: Minimum price
-      - price_max: Maximum price
-      - calories_min: Minimum calories
-      - calories_max: Maximum calories
-      - food_type: Type of food
-    Responses:
-      200:
-        description: List of food items
+    Get all foods or search for foods based on filters
     """
-    # TODO: Implement food search functionality
-    return jsonify({"message": "Food search endpoint - to be implemented"}), 200
+    filters = {
+        'name': request.args.get('name', ''),
+        'priceMin': request.args.get('priceMin', ''),
+        'priceMax': request.args.get('priceMax', ''),
+        'calMin': request.args.get('calMin', ''),
+        'calMax': request.args.get('calMax', ''),
+        'type': request.args.get('type', ''),
+        'restaurant': request.args.get('restaurant', '')
+    }
+
+    try:
+        results = search_food(filters)
+        return jsonify(results), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @food_bp.route('/record', methods=['POST'])
 def add_food_record():
