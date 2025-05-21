@@ -24,40 +24,50 @@
           />
         </el-form-item>
         
+        <el-form-item label="體重 (kg) *" prop="weight">
+          <el-input-number 
+            v-model="form.weight" 
+            :min="30" 
+            :max="200"
+            placeholder="請輸入您的體重（必填）" 
+            controls-position="right"
+            style="width: 100%;"
+          />
+        </el-form-item>
         
-        <el-form-item label="預算" prop="budget">
-  <el-input-number 
-    v-model="form.budget" 
-    :min="0" 
-    placeholder="請輸入預算" 
-    controls-position="right"
-    style="width: 100%;"
-  />
-</el-form-item>
+        <el-form-item label="每餐預算 *" prop="budget">
+          <el-input-number 
+            v-model="form.budget" 
+            :min="0" 
+            placeholder="請輸入預算（必填）" 
+            controls-position="right"
+            style="width: 100%;"
+          />
+        </el-form-item>
 
-<el-form-item label="每週熱量限制" prop="calorieLimit">
-  <el-input-number 
-    v-model="form.calorieLimit" 
-    :min="0" 
-    placeholder="請輸入每週熱量限制" 
-    controls-position="right"
-    style="width: 100%;"
-  />
-</el-form-item>
+        <el-form-item label="每週熱量限制 *" prop="calorieLimit">
+          <el-input-number 
+            v-model="form.calorieLimit" 
+            :min="0" 
+            placeholder="請輸入每週熱量限制（必填）" 
+            controls-position="right"
+            style="width: 100%;"
+          />
+        </el-form-item>
 
-<el-form-item label="飲食偏好" prop="foodPreference">
-  <el-input 
-    v-model="form.foodPreference" 
-    placeholder="請輸入飲食偏好"
-  />
-</el-form-item>
+        <el-form-item label="飲食偏好" prop="foodPreference">
+          <el-input 
+            v-model="form.foodPreference" 
+            placeholder="多種偏好請用逗號分隔，例如：義大利麵,壽司,火鍋"
+          />
+        </el-form-item>
 
-<el-form-item label="運動偏好" prop="exercisePreference">
-  <el-input 
-    v-model="form.exercisePreference" 
-    placeholder="請輸入運動偏好"
-  />
-</el-form-item>
+        <el-form-item label="運動偏好" prop="exercisePreference">
+          <el-input 
+            v-model="form.exercisePreference" 
+            placeholder="多種偏好請用逗號分隔，例如：籃球,快走,游泳"
+          />
+        </el-form-item>
 
         <el-form-item label="電子郵件" prop="email">
           <el-input 
@@ -144,147 +154,169 @@ export default {
     })
     
     const form = reactive({
-      name: '',
-      email: '',
-      password: '',
+      name: '',           // 必填
+      email: '',          // 必填
+      password: '',       // 必填
       confirmPassword: '',
-      budget: null,
-  calorieLimit: null,
-  foodPreference: '',
-  exercisePreference: ''
+      weight: null,       // 必填（用於計算健康目標）
+      budget: null,       // 必填（每餐預算）
+      calorieLimit: null, // 必填（每週熱量限制）
+      foodPreference: '',
+      exercisePreference: ''
     })
     
     const localError = ref('')
     
-  const rules = {
-  name: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          // 尚未提交且空白，不顯示錯誤
-          callback()
-          return
+    const rules = {
+      name: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              // 尚未提交且空白，不顯示錯誤
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入姓名'))
+            } else if (!isValidName(value)) {
+              callback(new Error('姓名至少需要2個字符'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
         }
-        if (!value) {
-          callback(new Error('請輸入姓名'))
-        } else if (!isValidName(value)) {
-          callback(new Error('姓名至少需要2個字符'))
-        } else {
-          callback()
+      ],
+      weight: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && value == null) {
+              callback()
+              return
+            }
+            if (value == null || value === '') {
+              callback(new Error('請輸入體重'))
+            } else if (value < 30 || value > 200) {
+              callback(new Error('體重需在合理範圍內'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
         }
-      },
-      trigger: ['blur', 'change']
+      ],
+      budget: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && value == null) {
+              callback()
+              return
+            }
+            if (value == null || value === '') {
+              callback(new Error('請輸入預算'))
+            } else if (value < 0) {
+              callback(new Error('預算不能是負數'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      calorieLimit: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && value == null) {
+              callback()
+              return
+            }
+            if (value == null || value === '') {
+              callback(new Error('請輸入每週熱量限制'))
+            } else if (value < 0) {
+              callback(new Error('每週熱量限制不能是負數'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      foodPreference: [
+        {
+          validator: (rule, value, callback) => {
+            callback() // 選填，不做嚴格限制
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      exercisePreference: [
+        {
+          validator: (rule, value, callback) => {
+            callback() // 選填，不做嚴格限制
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      email: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入電子郵件'))
+            } else if (!isValidEmail(value)) {
+              callback(new Error('請輸入有效的電子郵件地址'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      password: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入密碼'))
+            } else if (value.length < 8) {
+              callback(new Error('密碼長度必須至少為8個字符'))
+            } else {
+              const result = validatePassword(value)
+              if (!result.isValid) {
+                callback(new Error(result.message))
+              } else {
+                callback()
+              }
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      confirmPassword: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請再次輸入密碼'))
+            } else if (!doPasswordsMatch(form.password, value)) {
+              callback(new Error('兩次輸入的密碼不一致'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ]
     }
-  ],
-  budget: [
-  {
-    validator: (rule, value, callback) => {
-      if (value == null || value === '') {
-        callback()
-      } else if (value < 0) {
-        callback(new Error('預算不能是負數'))
-      } else {
-        callback()
-      }
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-calorieLimit: [
-  {
-    validator: (rule, value, callback) => {
-      if (value == null || value === '') {
-        callback()
-      } else if (value < 0) {
-        callback(new Error('每週熱量限制不能是負數'))
-      } else {
-        callback()
-      }
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-foodPreference: [
-  {
-    validator: (rule, value, callback) => {
-      callback() // 選填，不做嚴格限制
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-exercisePreference: [
-  {
-    validator: (rule, value, callback) => {
-      callback() // 選填，不做嚴格限制
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-  email: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請輸入電子郵件'))
-        } else if (!isValidEmail(value)) {
-          callback(new Error('請輸入有效的電子郵件地址'))
-        } else {
-          callback()
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ],
-  password: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請輸入密碼'))
-        } else if (value.length < 8) {
-          callback(new Error('密碼長度必須至少為8個字符'))
-        } else {
-          const result = validatePassword(value)
-          if (!result.isValid) {
-            callback(new Error(result.message))
-          } else {
-            callback()
-          }
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ],
-  confirmPassword: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請再次輸入密碼'))
-        } else if (!doPasswordsMatch(form.password, value)) {
-          callback(new Error('兩次輸入的密碼不一致'))
-        } else {
-          callback()
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ]
-}
-
     
     // 檢查密碼強度
     const checkPasswordStrength = () => {
@@ -308,25 +340,49 @@ exercisePreference: [
       }
     }
     
-  const submitForm = () => {
-  isSubmitAttempted.value = true
-  if (!registerForm.value) {
-    handleRegister()
-    return
-  }
-  registerForm.value.validate(valid => {
-    if (valid) {
-      handleRegister()
-    } else {
-      console.log('表單驗證失敗，顯示錯誤訊息')
+    const submitForm = () => {
+      isSubmitAttempted.value = true
+      if (!registerForm.value) {
+        handleRegister()
+        return
+      }
+      registerForm.value.validate(valid => {
+        if (valid) {
+          handleRegister()
+        } else {
+          console.log('表單驗證失敗，顯示錯誤訊息')
+        }
+      })
     }
-  })
-}
-
     
     const handleRegister = async () => {
       if (form.password !== form.confirmPassword) {
         localError.value = '兩次輸入的密碼不一致'
+        return
+      }
+      
+      // 驗證所有必填欄位
+      if (!form.name || !form.email || !form.password) {
+        localError.value = '請填寫基本資料（姓名、電子郵件、密碼）'
+        return
+      }
+      
+      // 特別檢查體重、預算、熱量限制
+      if (form.weight === null || form.weight === '') {
+        localError.value = '請填寫您的體重'
+        if (registerForm.value) registerForm.value.validateField('weight')
+        return
+      }
+      
+      if (form.budget === null || form.budget === '') {
+        localError.value = '請填寫每餐預算'
+        if (registerForm.value) registerForm.value.validateField('budget')
+        return
+      }
+      
+      if (form.calorieLimit === null || form.calorieLimit === '') {
+        localError.value = '請填寫每週熱量限制'
+        if (registerForm.value) registerForm.value.validateField('calorieLimit')
         return
       }
       
@@ -337,10 +393,11 @@ exercisePreference: [
           name: form.name,
           email: form.email,
           password: form.password,
+          weight: form.weight,
           budget: form.budget,
-  calorieLimit: form.calorieLimit,
-  foodPreference: form.foodPreference,
-  exercisePreference: form.exercisePreference
+          calorieLimit: form.calorieLimit,
+          foodPreference: form.foodPreference,
+          exercisePreference: form.exercisePreference
         })
         
         // 註冊成功，導航到儀表板
@@ -438,13 +495,10 @@ exercisePreference: [
   margin-bottom: 16px;
 }
 
-
-
 /* 輸入框寬度全滿 */
 .auth-form >>> .el-form-item__content {
   width: 100%;
 }
-
 
 /* 讓表單標籤跟輸入框垂直排列 */
 .auth-form >>> .el-form-item {
@@ -516,6 +570,11 @@ exercisePreference: [
 }
 
 .password-strength.error {
+  color: #ff4d4f;
+}
+
+/* 必填標記顏色 */
+.auth-form >>> .el-form-item__label em {
   color: #ff4d4f;
 }
 </style>

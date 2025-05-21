@@ -73,7 +73,7 @@ def login_user(data):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
-            cursor.execute("SELECT UserID, Name, Email, PasswordHash FROM Users WHERE Email = %s", (email,))
+            cursor.execute("SELECT UserID, Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit FROM Users WHERE Email = %s", (email,))
             user = cursor.fetchone()
 
             if not user or not verify_password(password, user['PasswordHash']):
@@ -92,7 +92,10 @@ def login_user(data):
                 "user": {
                     "id": user['UserID'],
                     "name": user['Name'],
-                    "email": user['Email']
+                    "email": user['Email'],
+                    "weight": user['Weight'],
+                    "budget": user['Budget'],
+                    "weekCalorieLimit": user['WeekCalorieLimit']
                 }
             }
     except pymysql.Error as e:

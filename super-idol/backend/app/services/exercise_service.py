@@ -31,17 +31,18 @@ def log_exercise(user_id: int, exercise_data: Dict[str, Any]) -> Dict[str, Any]:
             user = cursor.fetchone()
             if not user or user['Weight'] is None:
                 return {"error": "找不到使用者或體重未設定"}
-            weight = user['Weight']
+            weight = float(user['Weight'])
 
             # 查詢 MET
             cursor.execute("SELECT MET FROM ExerciseItem WHERE Exercise_Name = %s", (exercise_name,))
             item = cursor.fetchone()
             if not item:
                 return {"error": f"找不到運動名稱: {exercise_name}"}
-            met = item['MET']
+            met = float(item['MET'])
 
-            # 計算消耗熱量
-            calories_burned = met * 3.5 * weight / 200 * float(duration)
+            # 計算消耗熱量 - 確保所有數值都是 float 類型
+            duration_float = float(duration)
+            calories_burned = met * 3.5 * weight / 200 * duration_float
 
             # 寫入紀錄
             cursor.execute(
@@ -90,7 +91,7 @@ def get_exercise_records(user_id: int, start_date: Optional[str] = None, end_dat
             user = cursor.fetchone()
             if not user or user['Weight'] is None:
                 return []
-            weight = user['Weight']
+            weight = float(user['Weight'])
 
             # 查詢紀錄
             sql = "SELECT RecordID, Exercise_Name, Duration, Date FROM Exercise_Records WHERE UserID = %s"
@@ -110,7 +111,7 @@ def get_exercise_records(user_id: int, start_date: Optional[str] = None, end_dat
             if exercise_names:
                 format_strings = ','.join(['%s'] * len(exercise_names))
                 cursor.execute(f"SELECT Exercise_Name, MET FROM ExerciseItem WHERE Exercise_Name IN ({format_strings})", tuple(exercise_names))
-                met_map = {row['Exercise_Name']: row['MET'] for row in cursor.fetchall()}
+                met_map = {row['Exercise_Name']: float(row['MET']) for row in cursor.fetchall()}
             else:
                 met_map = {}
 
@@ -232,5 +233,43 @@ def update_exercise_record(user_id: int, record_id: int, update_data: Dict[str, 
     except Exception as e:
         conn.rollback()
         return {"error": str(e)}
+    finally:
+        conn.close()
+
+def get_all_exercise_items() -> List[Dict[str, Any]]:
+    """
+    獲取所有可用的運動項目及其MET值。
+    
+    Returns:
+        list: 運動項目列表，每項包含名稱和MET值
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # 首先檢查表是否存在
+            cursor.execute("SHOW TABLES LIKE 'ExerciseItem'")
+            if not cursor.fetchone():
+                print("錯誤: ExerciseItem 表不存在")
+                return []
+                
+            # 檢查表中是否有數據
+            cursor.execute("SELECT COUNT(*) as count FROM ExerciseItem")
+            count = cursor.fetchone()['count']
+            if count == 0:
+                print("警告: ExerciseItem 表中沒有數據")
+                return []
+            
+            # 移除 Status 條件，獲取所有運動項目
+            cursor.execute("SELECT Exercise_Name, MET FROM ExerciseItem ORDER BY Exercise_Name")
+            items = cursor.fetchall()
+            
+            # 記錄查詢結果數量
+            print(f"成功從 ExerciseItem 表獲取 {len(items)} 筆運動項目")
+            return items
+    except Exception as e:
+        print(f"獲取運動項目錯誤: {str(e)}")
+        import traceback
+        traceback.print_exc()  # 列印完整錯誤堆疊
+        return []
     finally:
         conn.close() 

@@ -46,9 +46,20 @@ export const useAuthStore = defineStore('auth', {
       this.error = null
       
       try {
-        // 修正API路徑，添加/api前綴
-        console.log('正在發送註冊請求:', userData);
-        const response = await api.post('/api/auth/signup', userData)
+        // 將欄位轉換為後端需要的格式
+        const formattedData = {
+          name: userData.name,
+          email: userData.email,
+          password: userData.password,
+          weight: userData.weight,
+          budget: userData.budget,
+          weekcalorielimit: userData.calorieLimit,  // 欄位名轉換
+          restaurant_preferences: userData.foodPreference ? userData.foodPreference.split(',').map(p => p.trim()) : [],  // 轉為陣列
+          exercise_preferences: userData.exercisePreference ? userData.exercisePreference.split(',').map(p => p.trim()) : []  // 轉為陣列
+        };
+        
+        console.log('正在發送註冊請求:', formattedData);
+        const response = await api.post('/api/auth/signup', formattedData)
         
         // 儲存 token 到 localStorage
         const token = response.data.access_token
