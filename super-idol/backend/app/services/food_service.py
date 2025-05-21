@@ -5,6 +5,7 @@ from ..database.models import FoodItem
 from ..extensions import db
 from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
 from app.db import get_db_connection
+import logging
 
 class FoodService:
     @staticmethod
@@ -48,7 +49,7 @@ def search_food(filters):
     try:
         with conn.cursor() as cursor:
             sql = """
-                SELECT f.FoodID, f.Name, f.Calories, f.Price, f.SetType, r.Name AS Restaurant
+                SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, r.Name AS Restaurant
                 FROM Food f
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
                 WHERE 1 = 1
@@ -80,27 +81,38 @@ def search_food(filters):
                 params.append(f"%{filters['restaurant']}%")
 
             if filters.get('type'):
-                sql += " AND f.SetType = %s"
+                sql += " AND f.Set_Type = %s"
                 params.append(filters['type'])
 
-            cursor.execute(sql, params)
-            rows = cursor.fetchall()
+            # 增加日誌輸出
+            logging.info(f"執行SQL: {sql}")
+            logging.info(f"參數: {params}")
             
-            # 將資料庫結果轉換為 JSON 格式
-            results = []
-            for row in rows:
-                results.append({
-                    'id': row[0],
-                    'name': row[1],
-                    'calories': row[2],
-                    'price': row[3],
-                    'type': row[4],
-                    'restaurant': row[5]
-                })
-            
-            return results
+            try:
+                cursor.execute(sql, params)
+                rows = cursor.fetchall()
+                
+                # 將資料庫結果轉換為 JSON 格式
+                results = []
+                for row in rows:
+                    logging.info(f"行數據: {row}")
+                    results.append({
+                        'id': row['FoodID'],
+                        'name': row['Name'],
+                        'calories': row['Calories'],
+                        'price': row['Price'],
+                        'food_type': row['Food_Type'],
+                        'type': row['Set_Type'],
+                        'restaurant': row['Restaurant']
+                    })
+                
+                return results
+            except Exception as e:
+                logging.error(f"SQL執行錯誤: {str(e)}")
+                raise Exception(f"SQL執行錯誤: {str(e)}")
 
     except Exception as e:
+        logging.error(f"數據庫錯誤: {str(e)}")
         raise Exception(f"Database error: {str(e)}")
     finally:
         conn.close()
@@ -129,7 +141,7 @@ def add_food_record(user_id, food_data):
         
         # 檢查用戶是否存在
         with conn.cursor() as cursor:
-            cursor.execute("SELECT UserID FROM User WHERE UserID = %s", (user_id,))
+            cursor.execute("SELECT UserID FROM Users WHERE UserID = %s", (user_id,))
             user = cursor.fetchone()
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")
@@ -144,7 +156,7 @@ def add_food_record(user_id, food_data):
         # 插入食物記錄
         with conn.cursor() as cursor:
             sql = """
-                INSERT INTO FoodRecord (UserID, FoodID, Mealtime, Quantity, Date) 
+                INSERT INTO Food_Records (UserID, FoodID, Mealtime, Quantity, Date) 
                 VALUES (%s, %s, %s, %s, %s)
             """
             cursor.execute(sql, (user_id, food_id, mealtime, quantity, date))
@@ -186,11 +198,12 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                     r.Name AS Restaurant,
                     f.Price,
                     f.Calories,
-                    f.SetType,
+                    f.Food_Type,
+                    f.Set_Type,
                     fr.Mealtime,
                     fr.Quantity,
                     fr.Date
-                FROM FoodRecord fr
+                FROM Food_Records fr
                 JOIN Food f ON fr.FoodID = f.FoodID
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
                 WHERE fr.UserID = %s
@@ -224,7 +237,8 @@ def get_user_food_records(user_id, start_date=None, end_date=None, mealtime=None
                     'restaurant': record['Restaurant'],
                     'price': record['Price'],
                     'calories': record['Calories'],
-                    'type': record['SetType'],
+                    'food_type': record['Food_Type'],
+                    'type': record['Set_Type'],
                     'mealtime': record['Mealtime'],
                     'quantity': record['Quantity'],
                     'date': record['Date'].strftime('%Y-%m-%d') if record['Date'] else None
@@ -253,7 +267,7 @@ def delete_food_record(user_id, record_id):
         # 首先檢查記錄是否存在且屬於該用戶
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT RecordID FROM FoodRecord WHERE RecordID = %s AND UserID = %s",
+                "SELECT RecordID FROM Food_Records WHERE RecordID = %s AND UserID = %s",
                 (record_id, user_id)
             )
             record = cursor.fetchone()
@@ -262,7 +276,7 @@ def delete_food_record(user_id, record_id):
         
         # 刪除記錄
         with conn.cursor() as cursor:
-            cursor.execute("DELETE FROM FoodRecord WHERE RecordID = %s", (record_id,))
+            cursor.execute("DELETE FROM Food_Records WHERE RecordID = %s", (record_id,))
             conn.commit()
             
             return {
@@ -295,7 +309,8 @@ def get_user_favorites(user_id):
                     r.Name AS Restaurant,
                     f.Price,
                     f.Calories,
-                    f.SetType,
+                    f.Food_Type,
+                    f.Set_Type,
                     fp.PreferenceID
                 FROM FoodPreference fp
                 JOIN Food f ON fp.FoodID = f.FoodID
@@ -316,7 +331,8 @@ def get_user_favorites(user_id):
                     'restaurant': fav['Restaurant'],
                     'price': fav['Price'],
                     'calories': fav['Calories'],
-                    'type': fav['SetType']
+                    'food_type': fav['Food_Type'],
+                    'type': fav['Set_Type']
                 })
             
             return results
@@ -341,7 +357,7 @@ def add_to_favorites(user_id, food_id):
     try:
         # 檢查用戶是否存在
         with conn.cursor() as cursor:
-            cursor.execute("SELECT UserID FROM User WHERE UserID = %s", (user_id,))
+            cursor.execute("SELECT UserID FROM Users WHERE UserID = %s", (user_id,))
             user = cursor.fetchone()
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")

@@ -28,6 +28,11 @@ export const useAuthStore = defineStore('auth', {
         const token = response.data.access_token
         localStorage.setItem('token', token)
         
+        // 儲存用戶ID到localStorage
+        if (response.data.user && response.data.user.id) {
+          localStorage.setItem('userId', response.data.user.id)
+        }
+        
         // 更新 state
         this.token = token
         this.user = response.data.user
@@ -73,6 +78,11 @@ export const useAuthStore = defineStore('auth', {
           // 儲存 token 到 localStorage
           const token = response.data.access_token
           localStorage.setItem('token', token)
+          
+          // 儲存用戶ID到localStorage
+          if (response.data.user && response.data.user.id) {
+            localStorage.setItem('userId', response.data.user.id)
+          }
           
           // 更新 state
           this.token = token
@@ -127,6 +137,7 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         // 無論 API 呼叫是否成功，都清除前端的 token 和使用者資訊
         localStorage.removeItem('token')
+        localStorage.removeItem('userId')
         this.token = null
         this.user = null
       }
@@ -140,6 +151,12 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.get('/api/auth/user')
         this.user = response.data
+        
+        // 更新localStorage中的userId
+        if (response.data && response.data.id) {
+          localStorage.setItem('userId', response.data.id)
+        }
+        
         return response.data
       } catch (error) {
         console.error('獲取使用者資料失敗:', error)

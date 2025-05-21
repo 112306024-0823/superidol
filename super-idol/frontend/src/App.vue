@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './store/auth'
 import Header from './components/layout/Header.vue'
@@ -32,6 +32,17 @@ export default {
     const isAuthenticated = computed(() => authStore.isAuthenticated)
     const isAuthPage = computed(() => {
       return route.path === '/login' || route.path === '/register'
+    })
+
+    // 初始化應用時嘗試載入用戶資料
+    onMounted(async () => {
+      if (authStore.token) {
+        try {
+          await authStore.fetchUserData()
+        } catch (error) {
+          console.error('初始化時載入用戶資料失敗:', error)
+        }
+      }
     })
 
     return {

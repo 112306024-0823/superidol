@@ -3,191 +3,328 @@
     <div class="container">
       <h1 class="page-title">食物記錄</h1>
 
-
       <!-- 日期選擇器 -->
-      <div class="date-selector">
-        <button class="btn btn-icon" @click="changeDate(-1)">
-          <i class="icon-left-arrow"></i>
+      <div class="date-navigation">
+        <button class="date-nav-btn" @click="changeDate(-1)">
+          <i class="el-icon-arrow-left"></i>
         </button>
-        <h2 class="current-date">{{ formattedDate }}</h2>
-        <button class="btn btn-icon" @click="changeDate(1)">
-          <i class="icon-right-arrow"></i>
+        <div class="date-picker-container">
+          <div class="current-date" @click="showDatePicker = true">
+            <i class="el-icon-date"></i>
+            <span>{{ formattedDate }}</span>
+            <i class="el-icon-arrow-down"></i>
+          </div>
+          <input 
+            type="date" 
+            v-model="selectedDateString" 
+            class="date-picker" 
+            :class="{ 'visible': showDatePicker }"
+            @change="showDatePicker = false; loadFoodRecords()"
+            @blur="showDatePicker = false"
+          >
+        </div>
+        <button class="date-nav-btn" @click="changeDate(1)">
+          <i class="el-icon-arrow-right"></i>
         </button>
       </div>
-
-
-      <div class="filter-row">
-        <div class="filter-item">
-          <label>日期</label>
-          <input type="date" v-model="selectedDate">
-        </div>
-        <div class="filter-item">
-          <label>食物類型</label>
-          <select>
-            <option>全部</option>
-            <option>漢堡</option>
-            <option>薯條</option>
-            <option>雞塊</option>
-          </select>
-        </div>
-        <div class="filter-item">
-          <label>餐廳</label>
-          <select>
-            <option>全部</option>
-            <option>麥當勞</option>
-            <option>肯德基</option>
-            <option>摩斯</option>
-          </select>
-        </div>
-      </div>
-
 
       <!-- 每日卡路里摘要 -->
-      <div class="calorie-summary">
-        <div class="calorie-info">
-          <div class="calorie-consumed">
-            <span class="value">{{ dailySummary.calories }}</span>
-            <span class="label">已攝取</span>
-          </div>
-          <div class="calorie-target">
-            <span class="value">{{ calorieGoal }}</span>
-            <span class="label">目標</span>
-          </div>
-          <div class="calorie-remaining">
-            <span class="value">{{ calorieRemaining }}</span>
-            <span class="label">剩餘</span>
-          </div>
+      <div class="nutrition-summary-card">
+        <div class="summary-header">
+          <h2 class="summary-title">今日營養摘要</h2>
         </div>
-        <div class="progress-container">
-          <div class="progress-bar" :style="{ width: calorieProgressPercentage + '%' }"
-            :class="{ 'exceed': calorieProgressPercentage > 100 }"></div>
+        <div class="calorie-summary">
+          <div class="calorie-info">
+            <div class="calorie-item calorie-consumed">
+              <div class="calorie-value">{{ dailySummary.calories }}</div>
+              <div class="calorie-label">已攝取卡路里</div>
+            </div>
+            <div class="calorie-divider"></div>
+            <div class="calorie-item calorie-target">
+              <div class="calorie-value">{{ calorieGoal }}</div>
+              <div class="calorie-label">目標卡路里</div>
+            </div>
+            <div class="calorie-divider"></div>
+            <div class="calorie-item calorie-remaining">
+              <div class="calorie-value" :class="{ 'negative': calorieRemaining < 0 }">
+                {{ calorieRemaining < 0 ? '+' + Math.abs(calorieRemaining) : calorieRemaining }}
+              </div>
+              <div class="calorie-label">{{ calorieRemaining < 0 ? '超出' : '剩餘' }}卡路里</div>
+            </div>
+          </div>
+          <div class="progress-container">
+            <div class="progress-bar" :style="{ width: calorieProgressPercentage + '%' }"
+              :class="{ 'exceed': calorieProgressPercentage > 100 }"></div>
+          </div>
         </div>
       </div>
 
-
       <!-- 餐點記錄 -->
-      <div class="food-record-container">
+      <div class="meals-container">
         <!-- 早餐 -->
-        <div class="meal-section">
+        <div class="meal-card">
           <div class="meal-header">
+            <div class="meal-icon-container">
+              <i class="el-icon-sunrise"></i>
+            </div>
             <h3 class="meal-title">早餐</h3>
-            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('breakfast')">添加食物</button>
-
-
+            <button class="add-food-btn" @click="addFood('breakfast')">
+              <i class="el-icon-plus"></i>
+              添加食物
+            </button>
           </div>
 
-
-          <div class="meal-items">
-            <!-- TODO: 使用 v-for 遍歷早餐食物列表 -->
-            <div v-if="!breakfastItems.length" class="empty-meal">
+          <div class="meal-content">
+            <div v-if="isLoading" class="meal-loading">
+              <div class="loading-spinner"></div>
+            </div>
+            <div v-else-if="!breakfastItems.length" class="empty-meal">
+              <i class="el-icon-food"></i>
               <p>尚未添加早餐食物</p>
             </div>
-            <div v-else v-for="(item, index) in breakfastItems" :key="index" class="food-card">
-              <div><strong>{{ item.name }}</strong></div>
-              <div>餐廳:{{ item.restaurant }}</div>
-              <div>價格:{{ item.price }}</div>
-              <div>熱量: {{ item.calories }}</div>
-              <div>類型:{{ item.type }}</div>
-              <div>數量: {{ item.quantity }}</div>
-              <button class="btn btn-sm btn-danger" @click="deleteRecord(item.id)">刪除</button>
+            <div v-else class="food-items">
+              <div v-for="(item, index) in breakfastItems" :key="index" class="food-item-card">
+                <div class="food-item-content">
+                  <div class="food-item-info">
+                    <h4 class="food-item-name">{{ item.name }}</h4>
+                    <div class="food-item-details">
+                      <div class="detail-row">
+                        <span class="detail-label">餐廳:</span>
+                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">價格:</span>
+                        <span class="detail-value">{{ item.price }} 元</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">熱量:</span>
+                        <span class="detail-value">{{ item.calories }} 大卡</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">類型:</span>
+                        <span class="detail-value">{{ item.type }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">數量:</span>
+                        <span class="detail-value">{{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="food-item-actions">
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
+                      <i class="el-icon-delete"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
 
         <!-- 午餐 -->
-        <div class="meal-section">
+        <div class="meal-card">
           <div class="meal-header">
+            <div class="meal-icon-container">
+              <i class="el-icon-sunny"></i>
+            </div>
             <h3 class="meal-title">午餐</h3>
-            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('lunch')">添加食物</button>
+            <button class="add-food-btn" @click="addFood('lunch')">
+              <i class="el-icon-plus"></i>
+              添加食物
+            </button>
           </div>
 
-
-          <div class="meal-items">
-            <!-- TODO: 使用 v-for 遍歷午餐食物列表 -->
-            <div v-if="!lunchItems.length" class="empty-meal">
+          <div class="meal-content">
+            <div v-if="isLoading" class="meal-loading">
+              <div class="loading-spinner"></div>
+            </div>
+            <div v-else-if="!lunchItems.length" class="empty-meal">
+              <i class="el-icon-food"></i>
               <p>尚未添加午餐食物</p>
             </div>
-            <div v-else v-for="(item, index) in lunchItems" :key="index" class="food-card">
-              <div><strong>{{ item.name }}</strong></div>
-              <div>餐廳:{{ item.restaurant }}</div>
-              <div>價格:{{ item.price }}</div>
-              <div>熱量: {{ item.calories }}</div>
-              <div>類型:{{ item.type }}</div>
-              <div>數量: {{ item.quantity }}</div>
-              <button class="btn btn-sm btn-danger" @click="deleteRecord(item.id)">刪除</button>
+            <div v-else class="food-items">
+              <div v-for="(item, index) in lunchItems" :key="index" class="food-item-card">
+                <div class="food-item-content">
+                  <div class="food-item-info">
+                    <h4 class="food-item-name">{{ item.name }}</h4>
+                    <div class="food-item-details">
+                      <div class="detail-row">
+                        <span class="detail-label">餐廳:</span>
+                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">價格:</span>
+                        <span class="detail-value">{{ item.price }} 元</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">熱量:</span>
+                        <span class="detail-value">{{ item.calories }} 大卡</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">類型:</span>
+                        <span class="detail-value">{{ item.type }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">數量:</span>
+                        <span class="detail-value">{{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="food-item-actions">
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
+                      <i class="el-icon-delete"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
 
         <!-- 晚餐 -->
-        <div class="meal-section">
+        <div class="meal-card">
           <div class="meal-header">
+            <div class="meal-icon-container">
+              <i class="el-icon-sunset"></i>
+            </div>
             <h3 class="meal-title">晚餐</h3>
-            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('dinner')">添加食物</button>
+            <button class="add-food-btn" @click="addFood('dinner')">
+              <i class="el-icon-plus"></i>
+              添加食物
+            </button>
           </div>
 
-
-          <div class="meal-items">
-            <!-- TODO: 使用 v-for 遍歷晚餐食物列表 -->
-            <div v-if="!dinnerItems.length" class="empty-meal">
+          <div class="meal-content">
+            <div v-if="isLoading" class="meal-loading">
+              <div class="loading-spinner"></div>
+            </div>
+            <div v-else-if="!dinnerItems.length" class="empty-meal">
+              <i class="el-icon-food"></i>
               <p>尚未添加晚餐食物</p>
             </div>
-            <div v-else v-for="(item, index) in dinnerItems" :key="index" class="food-card">
-              <div><strong>{{ item.name }}</strong></div>
-              <div>餐廳:{{ item.restaurant }}</div>
-              <div>價格:{{ item.price }}</div>
-              <div>熱量: {{ item.calories }}</div>
-              <div>類型:{{ item.type }}</div>
-              <div>數量: {{ item.quantity }}</div>
-              <button class="btn btn-sm btn-danger" @click="deleteRecord(item.id)">刪除</button>
+            <div v-else class="food-items">
+              <div v-for="(item, index) in dinnerItems" :key="index" class="food-item-card">
+                <div class="food-item-content">
+                  <div class="food-item-info">
+                    <h4 class="food-item-name">{{ item.name }}</h4>
+                    <div class="food-item-details">
+                      <div class="detail-row">
+                        <span class="detail-label">餐廳:</span>
+                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">價格:</span>
+                        <span class="detail-value">{{ item.price }} 元</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">熱量:</span>
+                        <span class="detail-value">{{ item.calories }} 大卡</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">類型:</span>
+                        <span class="detail-value">{{ item.type }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">數量:</span>
+                        <span class="detail-value">{{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="food-item-actions">
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
+                      <i class="el-icon-delete"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
 
         <!-- 點心 -->
-        <div class="meal-section">
+        <div class="meal-card">
           <div class="meal-header">
+            <div class="meal-icon-container">
+              <i class="el-icon-dessert"></i>
+            </div>
             <h3 class="meal-title">點心</h3>
-            <button class="btn btn-sm btn-primary add-food-btn" @click="addFood('snacks')">添加食物</button>
-
-
+            <button class="add-food-btn" @click="addFood('snacks')">
+              <i class="el-icon-plus"></i>
+              添加食物
+            </button>
           </div>
 
-
-          <div class="meal-items">
-            <!-- TODO: 使用 v-for 遍歷點心食物列表 -->
-            <div v-if="!snackItems.length" class="empty-meal">
+          <div class="meal-content">
+            <div v-if="isLoading" class="meal-loading">
+              <div class="loading-spinner"></div>
+            </div>
+            <div v-else-if="!snackItems.length" class="empty-meal">
+              <i class="el-icon-food"></i>
               <p>尚未添加點心食物</p>
             </div>
-            <div v-else v-for="(item, index) in snackItems" :key="index" class="food-card">
-              <div><strong>{{ item.name }}</strong></div>
-              <div>餐廳:{{ item.restaurant }}</div>
-              <div>價格:{{ item.price }}</div>
-              <div>熱量: {{ item.calories }}</div>
-              <div>類型:{{ item.type }}</div>
-              <div>數量: {{ item.quantity }}</div>
-              <button class="btn btn-sm btn-danger" @click="deleteRecord(item.id)">刪除</button>
+            <div v-else class="food-items">
+              <div v-for="(item, index) in snackItems" :key="index" class="food-item-card">
+                <div class="food-item-content">
+                  <div class="food-item-info">
+                    <h4 class="food-item-name">{{ item.name }}</h4>
+                    <div class="food-item-details">
+                      <div class="detail-row">
+                        <span class="detail-label">餐廳:</span>
+                        <span class="detail-value">{{ item.restaurant || '未知' }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">價格:</span>
+                        <span class="detail-value">{{ item.price }} 元</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">熱量:</span>
+                        <span class="detail-value">{{ item.calories }} 大卡</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">類型:</span>
+                        <span class="detail-value">{{ item.type }}</span>
+                      </div>
+                      <div class="detail-row">
+                        <span class="detail-label">數量:</span>
+                        <span class="detail-value">{{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="food-item-actions">
+                    <button class="delete-btn" @click="deleteRecord(item.record_id)">
+                      <i class="el-icon-delete"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- 無結果 -->
+      <div v-if="breakfastItems.length === 0 && lunchItems.length === 0 && dinnerItems.length === 0 && snackItems.length === 0 && !isLoading" class="no-records-card">
+        <i class="el-icon-notebook-2"></i>
+        <h3>今日尚未添加任何食物記錄</h3>
+        <p>點擊各餐點區域的"添加食物"按鈕開始記錄您的飲食</p>
+      </div>
+
+      <!-- 載入中 -->
+      <div v-if="isLoading && breakfastItems.length === 0 && lunchItems.length === 0 && dinnerItems.length === 0 && snackItems.length === 0" class="loading-state">
+        <div class="loading-spinner"></div>
+        <p>載入中...</p>
       </div>
     </div>
   </div>
 </template>
 
-
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 // TODO: 導入相關 store 和工具函數
 // import { useFoodStore } from '../../store/food'
 // import { formatDate } from '../../utils/date'
-
-
-
 
 export default {
   name: 'FoodRecord',
@@ -195,17 +332,21 @@ export default {
     // const foodStore = useFoodStore()
     const router = useRouter()
     const route = useRoute()
+    
     // 當前選中的日期
     const selectedDate = ref(new Date())
-
+    const selectedDateString = ref('')
+    const showDatePicker = ref(false)
 
     // 卡路里目標 (實際應從用戶設置獲取)
     const calorieGoal = ref(2000)
 
+    // 載入狀態
+    const isLoading = ref(false)
 
     // 格式化日期
     const formattedDate = computed(() => {
-      return selectedDate.value.toLocaleDateString('zh-TW', {
+      return new Date(selectedDate.value).toLocaleDateString('zh-TW', {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -213,64 +354,124 @@ export default {
       })
     })
 
-
     // 計算每日摘要
-    const dailySummary = computed(() => {
-      // TODO: 實際實現中應計算所有餐點的總和
-      return {
-        calories: 1250,
-        protein: 85,
-        carbs: 120,
-        fat: 45
-      }
+    const dailySummary = ref({
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0
     })
-
 
     // 計算剩餘卡路里
     const calorieRemaining = computed(() => {
       return calorieGoal.value - dailySummary.value.calories
     })
 
-
     // 計算卡路里進度百分比
     const calorieProgressPercentage = computed(() => {
-      return (dailySummary.value.calories / calorieGoal.value) * 100
+      return Math.min((dailySummary.value.calories / calorieGoal.value) * 100, 120)
     })
 
-
-    // 更改日期
-    const changeDate = (days) => {
-      const newDate = new Date(selectedDate.value)
-      newDate.setDate(newDate.getDate() + days)
-      selectedDate.value = newDate
-
-
-      // TODO: 加載所選日期的食物記錄
-      loadFoodRecords()
-    }
-
-
-    // 模擬各餐食物數據
-    //資料庫抓取時用
+    // 各餐食物數據
     const breakfastItems = ref([])
     const lunchItems = ref([])
     const dinnerItems = ref([])
     const snackItems = ref([])
 
+    // 監聽 selectedDate 的變化，更新 selectedDateString
+    watch(selectedDate, (newDate) => {
+      if (newDate instanceof Date) {
+        const year = newDate.getFullYear()
+        const month = String(newDate.getMonth() + 1).padStart(2, '0')
+        const day = String(newDate.getDate()).padStart(2, '0')
+        selectedDateString.value = `${year}-${month}-${day}`
+      }
+    }, { immediate: true })
 
     // 加載食物記錄
     const loadFoodRecords = async () => {
-      // TODO: 從API獲取所選日期的食物記錄
-      console.log('加載日期', selectedDate.value, '的食物記錄')
-
-
-      // 模擬數據
-      breakfastItems.value = []
-      lunchItems.value = []
-      dinnerItems.value = []
-      snackItems.value = []
+      isLoading.value = true;
+      
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          ElMessage.warning('請先登入')
+          isLoading.value = false
+          return
+        }
+        
+        // 使用 selectedDateString 作為日期參數
+        const response = await fetch(`http://localhost:5000/api/food/record?user_id=${userId}&start_date=${selectedDateString.value}&end_date=${selectedDateString.value}`)
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('加載食物記錄錯誤:', errorText)
+          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
+        }
+        
+        const data = await response.json()
+        console.log('獲取到食物記錄:', data)
+        
+        // 重置所有餐點數組
+        breakfastItems.value = []
+        lunchItems.value = []
+        dinnerItems.value = []
+        snackItems.value = []
+        
+        // 按餐點類型分類記錄
+        if (Array.isArray(data)) {
+          data.forEach(record => {
+            const recordData = {
+              id: record.record_id,
+              name: record.name,
+              restaurant: record.restaurant,
+              calories: record.calories,
+              price: record.price,
+              type: record.type,
+              food_type: record.food_type || '未分類',
+              quantity: record.quantity
+            }
+            
+            if (record.mealtime === '早餐') {
+              breakfastItems.value.push(recordData)
+            } else if (record.mealtime === '午餐') {
+              lunchItems.value.push(recordData)
+            } else if (record.mealtime === '晚餐') {
+              dinnerItems.value.push(recordData)
+            } else if (record.mealtime === '點心') {
+              snackItems.value.push(recordData)
+            }
+          })
+        }
+        
+        // 計算每日摘要
+        calculateDailySummary()
+      } catch (error) {
+        console.error('載入食物記錄失敗:', error)
+        ElMessage.error('無法載入食物記錄，請稍後再試')
+      } finally {
+        isLoading.value = false
+      }
     }
-
+    
+    // 計算每日摘要
+    const calculateDailySummary = () => {
+      let totalCalories = 0
+      
+      // 計算所有餐點的卡路里總和
+      const allItems = [
+        ...breakfastItems.value, 
+        ...lunchItems.value, 
+        ...dinnerItems.value, 
+        ...snackItems.value
+      ]
+      
+      allItems.forEach(item => {
+        totalCalories += (item.calories * item.quantity)
+      })
+      
+      dailySummary.value.calories = Math.round(totalCalories)
+    }
 
     // 添加食物到指定餐點
     const addFood = (mealType) => {
@@ -280,63 +481,60 @@ export default {
         query: {
           returnTo: '/food/record',
           mealType: mealType,
-          date: selectedDate.value.toISOString().split('T')[0]
+          date: selectedDateString.value
         }
       })
     }
 
-
     // 刪除食物記錄
     const deleteRecord = async (recordId) => {
-      // TODO: 實現刪除食物記錄功能
-      console.log('刪除記錄', recordId)
-      breakfastItems.value = breakfastItems.value.filter(item => item.id !== recordId)
-      lunchItems.value = lunchItems.value.filter(item => item.id !== recordId)
-      dinnerItems.value = dinnerItems.value.filter(item => item.id !== recordId)
-      snackItems.value = snackItems.value.filter(item => item.id !== recordId)
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          ElMessage.warning('請先登入')
+          return
+        }
+        
+        const response = await fetch(`http://localhost:5000/api/food/record/${recordId}?user_id=${userId}`, {
+          method: 'DELETE'
+        })
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('刪除食物記錄錯誤:', errorText)
+          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
+        }
+        
+        ElMessage.success('記錄已成功刪除')
+        
+        // 重新加載食物記錄
+        loadFoodRecords()
+      } catch (error) {
+        console.error('刪除記錄失敗:', error)
+        ElMessage.error('刪除記錄失敗，請稍後再試')
+      }
     }
 
+    // 更改日期
+    const changeDate = (days) => {
+      const newDate = new Date(selectedDate.value)
+      newDate.setDate(newDate.getDate() + days)
+      selectedDate.value = newDate
 
-    // 初始化食物 id 計數器
-    let foodId = 1
+      // 加載所選日期的食物記錄
+      loadFoodRecords()
+    }
+
     // 初始化
     onMounted(() => {
-      //loadFoodRecords()
-      //console.log("output")
-      const { name, restaurant, calories, price, type, mealType, quantity } = route.query
-
-
-      if (name && mealType) {
-        const newFood = {
-          id: foodId++, // 給一個唯一 id
-          name,
-          restaurant,
-          calories: Number(calories) || 0,
-          price: Number(price) || 0,
-          type: type || '未知',
-          quantity: Number(quantity) || 1
-        }
-
-
-        if (mealType === '早餐') {
-          breakfastItems.value.push(newFood)
-        } else if (mealType === '午餐') {
-          lunchItems.value.push(newFood)
-        } else if (mealType === '晚餐') {
-          dinnerItems.value.push(newFood)
-        } else if (mealType === '點心') {
-          snackItems.value.push(newFood)
-        }
-
-
-        //清除 query
-        router.replace({ query: {} })
-      }
+      // 加載當前日期的食物記錄
+      loadFoodRecords()
     })
-
 
     return {
       selectedDate,
+      selectedDateString,
+      showDatePicker,
       formattedDate,
       calorieGoal,
       dailySummary,
@@ -348,260 +546,438 @@ export default {
       snackItems,
       changeDate,
       addFood,
-      deleteRecord
+      deleteRecord,
+      isLoading,
+      loadFoodRecords
     }
   }
 }
 </script>
 
-
 <style scoped>
 .food-record-page {
   padding: 20px 0;
+  color: #333;
 }
 
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
 
 .page-title {
   margin-bottom: 24px;
   font-size: 28px;
-  color: var(--text-color);
+  font-weight: 700;
+  color: #333;
+  text-align: center;
 }
 
-
-.date-selector {
+/* 日期導航 */
+.date-navigation {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: 30px;
 }
 
+.date-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.date-nav-btn:hover {
+  background: #f5f5f5;
+}
+
+.date-nav-btn i {
+  color: #666;
+  font-size: 18px;
+}
+
+.date-picker-container {
+  position: relative;
+  margin: 0 16px;
+}
 
 .current-date {
-  margin: 0 16px;
-  font-size: 20px;
-  color: var(--text-color);
-}
-
-
-.filter-row {
-  display: flex;
-  gap: 20px;
-  margin: 16px 0;
-  justify-content: center;
-}
-
-
-.filter-item {
+  padding: 10px 20px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   gap: 8px;
-  /* 可以調整間距 */
-  font-size: 14px;
-  color: var(--text-color);
-}
-
-
-
-
-.filter-item select {
-  padding: 6px 8px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-}
-
-
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 20px;
   cursor: pointer;
-  color: var(--primary-color);
+  transition: all 0.3s;
 }
 
-
-.meal-section button{
-  background-color: #ffeb85;
-  /* 鵝黃色 */
-  color: #333;
-  border: none;
-  border-radius: 10px;
-  padding: 6px 15px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.current-date:hover {
+  background: #f9f9f9;
 }
 
-
-.meal-section button:hover {
-  background-color: #f5d94b;
-  /* 深一點的鵝黃色 */
+.current-date i {
+  color: #ffaa55;
 }
 
-
-.food-card button{
-  background-color: #ffeb85;
-  /* 鵝黃色 */
-  color: #333;
-  border: none;
-  border-radius: 10px;
-  padding: 6px 15px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.date-picker {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.3s;
+  z-index: 10;
 }
 
-
-.food-card button:hover {
-  background-color: #f5d94b;
-  /* 深一點的鵝黃色 */
+.date-picker.visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
+/* 營養摘要卡片 */
+.nutrition-summary-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+
+.summary-header {
+  padding: 16px 20px;
+  background: #ffaa55;
+  color: white;
+}
+
+.summary-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
 
 .calorie-summary {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
 }
-
 
 .calorie-info {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
-
-.calorie-consumed,
-.calorie-target,
-.calorie-remaining {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.calorie-item {
+  flex: 1;
+  text-align: center;
+  padding: 0 10px;
 }
 
-
-.value {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 4px;
+.calorie-divider {
+  width: 1px;
+  background: #eee;
 }
 
+.calorie-value {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: #333;
+}
 
-.label {
+.calorie-value.negative {
+  color: #f56c6c;
+}
+
+.calorie-label {
   font-size: 14px;
   color: #666;
 }
 
-
 .progress-container {
   height: 8px;
-  background-color: #e0e0e0;
+  background: #f0f0f0;
   border-radius: 4px;
   overflow: hidden;
 }
-
 
 .progress-bar {
   height: 100%;
-  background-color: var(--primary-color);
+  background: #ffaa55;
   transition: width 0.3s ease;
 }
 
-
 .progress-bar.exceed {
-  background-color: var(--danger-color);
+  background: #f56c6c;
 }
 
+/* 餐點卡片 */
+.meals-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 40px;
+}
 
-.food-record-container {
-  background-color: var(--card-bg);
-  border-radius: 8px;
+.meal-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-
-
-.meal-section {
-  border-bottom: 1px solid #eee;
-  padding: 16px;
-}
-
-
-.meal-section:last-child {
-  border-bottom: none;
-}
-
 
 .meal-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-
-
-  background-color: rgb(249, 180, 95);
-  /* 亮橘黃色 */
-  padding: 12px 16px;
-  border-radius: 6px;
-  color: #4a2e00;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f9f9f9;
 }
 
+.meal-icon-container {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #ffaa55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meal-icon-container i {
+  font-size: 20px;
+  color: white;
+}
 
 .meal-title {
-  font-size: 18px;
+  flex: 1;
   margin: 0;
-  color: white;
-}
-
-
-.empty-meal {
-  padding: 12px;
-  text-align: center;
-  color: #888;
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 4px;
-}
-
-
-.meal-items {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.add-food-btn {
-  background-color: #ffa940;
-  color: white;
-  border: 1px solid #ffa940;
-  border-radius: 24px;      /* 大圓角，圓弧效果 */
-  padding: 6px 20px;        /* 上下內距6px，左右20px */
+  font-size: 18px;
   font-weight: 600;
-  transition: background-color 0.3s ease;
-  cursor: pointer;
+  color: #333;
 }
 
+.add-food-btn {
+  padding: 8px 16px;
+  background: #ffaa55;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
 
 .add-food-btn:hover {
-  background-color: #d48806;
-  border-color: #d48806;
-  color: white;
+  background: #ff9933;
 }
 
+.meal-content {
+  padding: 20px;
+}
 
+.meal-loading {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+}
 
+.loading-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #ffaa55;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.empty-meal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 0;
+  color: #999;
+}
+
+.empty-meal i {
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: #ddd;
+}
+
+.empty-meal p {
+  margin: 0;
+  font-size: 16px;
+}
+
+.food-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.food-item-card {
+  background: #f9f9f9;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.food-item-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.food-item-content {
+  display: flex;
+  padding: 16px;
+}
+
+.food-item-info {
+  flex: 1;
+}
+
+.food-item-name {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.food-item-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px 16px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detail-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.detail-value {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.food-item-actions {
+  display: flex;
+  align-items: center;
+}
+
+.delete-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.delete-btn:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* 無記錄狀態 */
+.no-records-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 40px 20px;
+  text-align: center;
+  margin: 40px 0;
+}
+
+.no-records-card i {
+  font-size: 48px;
+  color: #ddd;
+  margin-bottom: 16px;
+}
+
+.no-records-card h3 {
+  margin: 0 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+.no-records-card p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* 載入狀態 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin: 40px 0;
+}
+
+.loading-state .loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 16px;
+}
+
+.loading-state p {
+  margin: 0;
+  color: #666;
+  font-size: 16px;
+}
+
+/* 響應式設計 */
 @media (max-width: 768px) {
   .calorie-info {
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 20px;
   }
 
+  .calorie-divider {
+    display: none;
+  }
 
-  .calorie-consumed,
-  .calorie-target,
-  .calorie-remaining {
-    flex: 1;
-    min-width: 30%;
-    margin-bottom: 12px;
+  .food-item-details {
+    grid-template-columns: 1fr;
   }
 }
 </style>
