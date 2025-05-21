@@ -47,42 +47,53 @@ def search_food(filters):
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
+            # 基本查詢
             sql = """
-                SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Set_Type, r.Name AS Restaurant
+                SELECT 
+                    f.FoodID,
+                    f.Name,
+                    CAST(f.Calories AS FLOAT),
+                    f.Price,
+                    f.Set_Type,
+                    r.Name AS Restaurant
                 FROM Food f
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
                 WHERE 1 = 1
             """
             params = []
 
-            if filters.get('priceMin'):
+            # 添加過濾條件
+            if filters.get('priceMin') and filters['priceMin'].strip():
                 sql += " AND f.Price >= %s"
                 params.append(float(filters['priceMin']))
 
-            if filters.get('priceMax'):
+            if filters.get('priceMax') and filters['priceMax'].strip():
                 sql += " AND f.Price <= %s"
                 params.append(float(filters['priceMax']))
 
-            if filters.get('calMin'):
+            if filters.get('calMin') and filters['calMin'].strip():
                 sql += " AND f.Calories >= %s"
                 params.append(float(filters['calMin']))
 
-            if filters.get('calMax'):
+            if filters.get('calMax') and filters['calMax'].strip():
                 sql += " AND f.Calories <= %s"
                 params.append(float(filters['calMax']))
 
-            if filters.get('name'):
+            if filters.get('name') and filters['name'].strip():
                 sql += " AND f.Name LIKE %s"
                 params.append(f"%{filters['name']}%")
 
-            if filters.get('restaurant'):
+            if filters.get('restaurant') and filters['restaurant'].strip():
                 sql += " AND r.Name LIKE %s"
                 params.append(f"%{filters['restaurant']}%")
 
-            if filters.get('type'):
+            if filters.get('type') and filters['type'].strip():
                 sql += " AND f.Set_Type = %s"
                 params.append(filters['type'])
 
+            print(f"Executing SQL: {sql}")  # 添加 SQL 日誌
+            print(f"Parameters: {params}")  # 添加參數日誌
+            
             cursor.execute(sql, params)
             rows = cursor.fetchall()
             
@@ -92,15 +103,17 @@ def search_food(filters):
                 results.append({
                     'id': row[0],
                     'name': row[1],
-                    'calories': row[2],
+                    'calories': float(row[2]) if row[2] is not None else 0,
                     'price': row[3],
                     'type': row[4],
-                    'restaurant': row[5]
+                    'restaurant': row[5] or ''  # 處理 NULL 值
                 })
             
+            print(f"Found {len(results)} results")  # 添加結果數量日誌
             return results
 
     except Exception as e:
+        print(f"Database error in search_food: {str(e)}")  # 添加錯誤日誌
         raise Exception(f"Database error: {str(e)}")
     finally:
         conn.close()

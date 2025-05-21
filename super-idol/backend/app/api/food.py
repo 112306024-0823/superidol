@@ -14,20 +14,24 @@ def get_foods():
     """
     Get all foods or search for foods based on filters
     """
-    filters = {
-        'name': request.args.get('name', ''),
-        'priceMin': request.args.get('priceMin', ''),
-        'priceMax': request.args.get('priceMax', ''),
-        'calMin': request.args.get('calMin', ''),
-        'calMax': request.args.get('calMax', ''),
-        'type': request.args.get('type', ''),
-        'restaurant': request.args.get('restaurant', '')
-    }
-
     try:
+        # 初始化空的過濾條件
+        filters = {
+            'name': request.args.get('name', ''),
+            'priceMin': request.args.get('priceMin', ''),
+            'priceMax': request.args.get('priceMax', ''),
+            'calMin': request.args.get('calMin', ''),
+            'calMax': request.args.get('calMax', ''),
+            'type': request.args.get('type', ''),
+            'restaurant': request.args.get('restaurant', '')
+        }
+
         results = search_food(filters)
+        if not results:
+            results = []  # 確保返回空列表而不是 None
         return jsonify(results), 200
     except Exception as e:
+        print(f"Error in get_foods: {str(e)}")  # 添加服務器端日誌
         return jsonify({'error': str(e)}), 500
 
 @food_bp.route('/record', methods=['POST'])
