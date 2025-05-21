@@ -239,7 +239,7 @@ export default {
 
         searchResults.value = filtered
         isLoading.value = false
-      }
+      }, 300)
     }
 
 

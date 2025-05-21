@@ -40,7 +40,7 @@
       <div v-if="filterMode === 'advanced'" class="filter-row">
         <!-- 月份選擇器 -->
         <div class="filter-item filter-month">
-          <label>月份快速選擇</label>
+          <label>月份選擇</label>
           <div class="month-selector">
             <button 
               class="btn btn-month" 
@@ -154,7 +154,10 @@
                 </span>
                 <span class="exercise-intensity">
                   <span class="material-icons small-icon">speed</span>
-                  {{ getMET(exercise.type) }} MET
+                  <span class="intensity-level">{{ getIntensityLevel(exercise.type) }}</span>
+                  <span class="flame-icons">
+                    <span class="material-icons flame-icon" v-for="n in getFlameCount(exercise.type)" :key="n">local_fire_department</span>
+                  </span>
                 </span>
               </div>
             </div>
@@ -202,7 +205,8 @@
             <select v-model="newExercise.type" class="modal-input">
               <option value="" disabled>請選擇運動類型</option>
               <option v-for="type in exerciseTypes" :key="type" :value="type">
-                {{ type }} ({{ getMET(type) }} MET)
+                {{ type }} ({{ getIntensityLevel(type) }} 
+                <span v-html="getFlameIconsHTML(type)"></span>)
               </option>
             </select>
           </div>
@@ -249,7 +253,8 @@
             <select v-model="editingExercise.type" class="modal-input">
               <option value="" disabled>請選擇運動類型</option>
               <option v-for="type in exerciseTypes" :key="type" :value="type">
-                {{ type }} ({{ getMET(type) }} MET)
+                {{ type }} ({{ getIntensityLevel(type) }} 
+                <span v-html="getFlameIconsHTML(type)"></span>)
               </option>
             </select>
           </div>
@@ -390,10 +395,12 @@ export default {
     }
     
     // 清除日期範圍篩選 - 新增
-    const clearDateRangeFilter = () => {
+    const clearDateRangeFilter = (skipReload = false) => {
       startDateFilter.value = ''
       endDateFilter.value = ''
-      loadExerciseRecords()
+      if (!skipReload) {
+        loadExerciseRecords()
+      }
     }
     
     // 清除所有篩選條件 - 新增
@@ -582,7 +589,6 @@ export default {
       dateInput.value = newDate.toISOString().substr(0, 10)
       // 使用箭頭切換日期時，自動切換到單日模式
       switchFilterMode('day')
-      loadExerciseRecords()
     }
 
     const editExercise = (id) => {
@@ -603,6 +609,32 @@ export default {
       // 從已載入的運動項目資料中尋找匹配的MET值
       const item = exerciseItems.value.find(item => item.Exercise_Name === exerciseName)
       return item && item.MET ? parseFloat(item.MET) : 0
+    }
+
+    // 根據 MET 值取得運動強度等級
+    const getIntensityLevel = (exerciseName) => {
+      const met = getMET(exerciseName)
+      if (met <= 0) return '未知強度'
+      if (met < 3) return '輕度'
+      if (met < 6) return '中度'
+      return '高度'
+    }
+    
+    // 根據 MET 值獲取火焰數量 (1-5)
+    const getFlameCount = (exerciseName) => {
+      const met = getMET(exerciseName)
+      if (met <= 0) return 0
+      if (met < 2) return 1
+      if (met < 4) return 2
+      if (met < 6) return 3
+      if (met < 8) return 4
+      return 5
+    }
+    
+    // 獲取用於 HTML 選項的火焰圖示字串
+    const getFlameIconsHTML = (exerciseName) => {
+      const count = getFlameCount(exerciseName)
+      return '🔥'.repeat(count)
     }
 
     // 為運動類型提供對應圖示 - 新增
@@ -776,7 +808,7 @@ export default {
     const switchFilterMode = (mode) => {
       filterMode.value = mode
       if (mode === 'day') {
-        clearDateRangeFilter()
+        clearDateRangeFilter(true)
       }
       loadExerciseRecords()
     }
@@ -850,6 +882,9 @@ export default {
       editExercise,
       deleteExercise,
       getMET,
+      getIntensityLevel,
+      getFlameCount,
+      getFlameIconsHTML,
       getExerciseIcon,
       today,
       isToday,
@@ -1241,6 +1276,26 @@ export default {
   gap: 16px;
   font-size: 14px;
   color: #666;
+}
+
+.exercise-intensity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+}
+
+.intensity-level {
+  font-weight: 500;
+}
+
+.flame-icons {
+  display: inline-flex;
+}
+
+.flame-icon {
+  font-size: 14px;
+  color: #ff6b00;
 }
 
 .small-icon {
