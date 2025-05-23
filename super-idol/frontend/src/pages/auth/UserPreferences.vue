@@ -275,9 +275,9 @@ export default {
           return
         }
         // 收集偏好
-        const foodPreferencesList = []
+        const Food_PreferencesList = []
         for (const [key, value] of Object.entries(preferences.foodTypePreferences)) {
-          if (value) foodPreferencesList.push(key)
+          if (value) Food_PreferencesList.push(key)
         }
         const exercisePreferencesList = []
         for (const [key, value] of Object.entries(preferences.exercisePreferences)) {
@@ -320,7 +320,7 @@ export default {
         }
         // 2. 送偏好（只要註冊成功且 user_id 存在才送）
         try {
-          await axios.post('/api/user/food-preferences', { user_id: userId, food_types: foodPreferencesList })
+          await axios.post('/api/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
           await axios.post('/api/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
           await axios.post('/api/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
         } catch (error) {

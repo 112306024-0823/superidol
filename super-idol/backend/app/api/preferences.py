@@ -80,4 +80,77 @@ def api_save_restaurant_preferences(conn):
     restaurant_ids = data.get('restaurant_ids', [])
     with conn.cursor() as cursor:
         save_restaurant_preferences(user_id, restaurant_ids, cursor)
+    return jsonify({'success': True})
+
+@preferences_bp.route('/user/food-preferences', methods=['GET'])
+def get_food_preferences():
+    user_id = request.args.get('user_id', type=int)
+    if not user_id:
+        return jsonify({'error': 'user_id is required'}), 400
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT Food_Type FROM Food_Preference WHERE UserID = %s", (user_id,))
+            rows = cursor.fetchall()
+        return jsonify({'food_types': [row['Food_Type'] for row in rows]})
+    finally:
+        conn.close()
+
+@preferences_bp.route('/user/exercise-preferences', methods=['GET'])
+def get_exercise_preferences():
+    user_id = request.args.get('user_id', type=int)
+    if not user_id:
+        return jsonify({'error': 'user_id is required'}), 400
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT Exercise_Name FROM Exercise_Preference WHERE UserID = %s", (user_id,))
+            rows = cursor.fetchall()
+        return jsonify({'exercise_names': [row['Exercise_Name'] for row in rows]})
+    finally:
+        conn.close()
+
+@preferences_bp.route('/user/restaurant-preferences', methods=['GET'])
+def get_restaurant_preferences():
+    user_id = request.args.get('user_id', type=int)
+    if not user_id:
+        return jsonify({'error': 'user_id is required'}), 400
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT RestaurantID FROM Restaurant_Preference WHERE UserID = %s", (user_id,))
+            rows = cursor.fetchall()
+        return jsonify({'restaurant_ids': [row['RestaurantID'] for row in rows]})
+    finally:
+        conn.close()
+
+# PUT: 直接覆蓋偏好
+@preferences_bp.route('/user/food-preferences', methods=['PUT'])
+@db_transaction
+def update_food_preferences(conn):
+    data = request.json
+    user_id = data.get('user_id')
+    food_types = data.get('food_types', [])
+    with conn.cursor() as cursor:
+        save_food_preferences(user_id, food_types, cursor)
+    return jsonify({'success': True})
+
+@preferences_bp.route('/user/exercise-preferences', methods=['PUT'])
+@db_transaction
+def update_exercise_preferences(conn):
+    data = request.json
+    user_id = data.get('user_id')
+    exercise_names = data.get('exercise_names', [])
+    with conn.cursor() as cursor:
+        save_exercise_preferences(user_id, exercise_names, cursor)
+    return jsonify({'success': True})
+
+@preferences_bp.route('/user/restaurant-preferences', methods=['PUT'])
+@db_transaction
+def update_restaurant_preferences(conn):
+    data = request.json
+    user_id = data.get('user_id')
+    restaurant_ids = data.get('restaurant_ids', [])
+    with conn.cursor() as cursor:
+        save_restaurant_preferences(user_id, restaurant_ids, cursor)
     return jsonify({'success': True}) 

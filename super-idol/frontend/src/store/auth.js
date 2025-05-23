@@ -64,7 +64,7 @@ export const useAuthStore = defineStore('auth', {
           weight: userData.weight,
           budget: userData.budget,
           weekcalorielimit: userData.calorieLimit,  // 欄位名轉換
-          restaurant_preferences: userData.foodPreference ? userData.foodPreference.split(',').map(p => p.trim()) : [],  // 轉為陣列
+          restaurant_preferences: userData.Food_Preference ? userData.Food_Preference.split(',').map(p => p.trim()) : [],  // 轉為陣列
           exercise_preferences: userData.exercisePreference ? userData.exercisePreference.split(',').map(p => p.trim()) : []  // 轉為陣列
         };
         

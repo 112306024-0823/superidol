@@ -110,3 +110,43 @@ def check_email():
         return jsonify({'exists': False, 'error': str(e)}), 500
     finally:
         conn.close()
+
+@auth_bp.route('/profile', methods=['PUT'])
+def update_profile():
+    try:
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({"error": "Missing or invalid token"}), 401
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, Config.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        data = request.get_json() or {}
+        # 只允許更新這些欄位
+        allowed_fields = ['name', 'email', 'budget', 'weekcalorielimit', 'weight']
+        fields = []
+        values = []
+        for key in allowed_fields:
+            if key in data:
+                # DB 欄位名稱大小寫需對應
+                db_key = {
+                    'name': 'Name',
+                    'email': 'Email',
+                    'budget': 'Budget',
+                    'weekcalorielimit': 'WeekCalorieLimit',
+                    'weight': 'weight'
+                }[key]
+                fields.append(f"{db_key} = %s")
+                values.append(data[key])
+        if not fields:
+            return jsonify({"error": "No fields to update"}), 400
+        values.append(user_id)
+        conn = get_db_connection()
+        try:
+            with conn.cursor() as cursor:
+                cursor.execute(f"UPDATE Users SET {', '.join(fields)} WHERE UserID = %s", tuple(values))
+            conn.commit()
+        finally:
+            conn.close()
+        return jsonify({"message": "Profile updated successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
