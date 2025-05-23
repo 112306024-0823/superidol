@@ -4,12 +4,11 @@ from datetime import datetime, timedelta
 from app.db import get_db_connection
 from app.utils.security import hash_password, verify_password
 from app.config import Config
-from app.services.restaurant_preference_service import insert_restaurant_preference
-from app.services.exercise_preference_service import insert_exercise_preference
+from app.services.preference_service import save_restaurant_preferences, save_exercise_preferences, save_food_preferences
 
 def register_user(data):
     """
-    註冊使用者並儲存其餐廳偏好
+    註冊使用者，只寫入 user，不處理偏好。
     """
     name = data.get('name')
     email = data.get('email')
@@ -17,37 +16,25 @@ def register_user(data):
     weight = data.get('weight')
     budget = data.get('budget')
     weekcalorielimit = data.get('weekcalorielimit')
-    restaurant_preferences = data.get('restaurant_preferences', [])
-    exercise_preferences = data.get('exercise_preferences', [])
 
     if not all([name, email, password, weight, budget, weekcalorielimit]):
         return {"error": "Missing required fields"}
 
     hashed_password = hash_password(password)
     conn = get_db_connection()
-
+    cursor = conn.cursor()
     try:
-        with conn.cursor() as cursor:
-            # 檢查 email 是否存在
-            cursor.execute("SELECT * FROM Users WHERE Email = %s", (email,))
-            if cursor.fetchone():
-                return {"error": "Email already exists"}
+        # 檢查 email 是否存在
+        cursor.execute("SELECT * FROM Users WHERE Email = %s", (email,))
+        if cursor.fetchone():
+            return {"error": "Email already exists"}
 
-            # 新增使用者
-            cursor.execute("""
-                INSERT INTO Users (Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (name, email, hashed_password, weight, budget, weekcalorielimit))
-            user_id = cursor.lastrowid
-
-            # 新增餐廳偏好
-            for rid in restaurant_preferences:
-                insert_restaurant_preference(user_id, rid)
-                
-            #新增運動偏好
-            for exercise in exercise_preferences:
-                insert_exercise_preference(user_id, exercise)
-
+        # 新增使用者
+        cursor.execute("""
+            INSERT INTO Users (Name, Email, PasswordHash, Weight, Budget, WeekCalorieLimit)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (name, email, hashed_password, weight, budget, weekcalorielimit))
+        user_id = cursor.lastrowid
         conn.commit()
         return {
             "message": "User registered successfully",
@@ -55,11 +42,11 @@ def register_user(data):
             "name": name,
             "email": email
         }
-
     except pymysql.Error as e:
         conn.rollback()
         return {"error": f"Database error: {str(e)}"}
     finally:
+        cursor.close()
         conn.close()
 
 

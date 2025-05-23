@@ -1,6 +1,6 @@
 <template>
   <div class="register-page">
-    <el-card class="auth-container">
+    <el-card class="auth-container" shadow="hover">
       <div class="auth-header">
         <h1>Super Idol</h1>
         <p>創建新帳戶</p>
@@ -8,10 +8,19 @@
       
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
-      <div class="progress-bar">
-        <div class="step active">基本資訊</div>
-        <div class="step">偏好設定</div>
-        <div class="step">完成</div>
+      <div class="progress-steps">
+        <div class="step active">
+          <div class="step-icon">1</div>
+          <div class="step-label">基本資訊</div>
+        </div>
+        <div class="step">
+          <div class="step-icon">2</div>
+          <div class="step-label">偏好設定</div>
+        </div>
+        <div class="step">
+          <div class="step-icon">3</div>
+          <div class="step-label">完成</div>
+        </div>
       </div>
       
       <el-form 
@@ -22,73 +31,96 @@
         ref="registerForm"
         status-icon
       >
-        <el-form-item label="姓名" prop="name">
-          <el-input 
-            v-model="form.name"
-            placeholder="請輸入您的姓名"
-            prefix-icon="User"
-          />
-        </el-form-item>
-        
-        <el-form-item label="體重 (kg) *" prop="weight">
-          <el-input-number 
-            v-model="form.weight" 
-            :min="30" 
-            :max="200"
-            placeholder="請輸入您的體重（必填）" 
-            controls-position="right"
-            style="width: 100%;"
-          />
-        </el-form-item>
-
-        <el-form-item label="電子郵件" prop="email">
-          <el-input 
-            v-model="form.email"
-            type="email" 
-            placeholder="請輸入電子郵件"
-            prefix-icon="Message"
-            @blur="validateEmail"
-          />
-        </el-form-item>
-        
-        <el-form-item label="密碼" prop="password">
-          <el-input 
-            v-model="form.password"
-            type="password" 
-            placeholder="請輸入密碼"
-            prefix-icon="Lock"
-            show-password
-            @input="checkPasswordStrength"
-          />
-          <div v-if="passwordResult.isValid" class="password-strength" :class="passwordResult.strength">
-            密碼強度: {{ passwordResult.message }}
+        <div class="preference-card">
+          <div class="card-header">
+            <i class="el-icon-user"></i>
+            <h3>個人資料</h3>
           </div>
-          <div v-else class="password-strength error">
-            {{ passwordResult.message }}
+          
+          <el-form-item label="姓名 *" prop="name">
+            <el-input 
+              v-model="form.name"
+              placeholder="請輸入您的姓名"
+              prefix-icon="User"
+              style="font-size: 18px;"
+            />
+          </el-form-item>
+          
+          <el-form-item label="體重 (kg) *" prop="weight">
+            <el-input-number 
+              v-model="form.weight" 
+              :min="30" 
+              :max="200"
+              placeholder="請輸入您的體重（必填）" 
+              controls-position="right"
+              class="weight-input"
+              style="font-size: 18px;"
+            />
+            <div class="form-hint">您的體重資訊將用於計算健康目標和熱量建議</div>
+          </el-form-item>
+        </div>
+        
+        <div class="preference-card">
+          <div class="card-header">
+            <i class="el-icon-lock"></i>
+            <h3>帳號設定</h3>
           </div>
-        </el-form-item>
+          
+          <el-form-item label="電子郵件" prop="email">
+            <el-input 
+              v-model="form.email"
+              type="email" 
+              placeholder="請輸入電子郵件"
+              prefix-icon="Message"
+              @blur="validateEmail"
+            />
+          </el-form-item>
+          
+          <el-form-item label="密碼" prop="password">
+            <el-input 
+              v-model="form.password"
+              type="password" 
+              placeholder="請輸入密碼"
+              prefix-icon="Lock"
+              show-password
+              @input="checkPasswordStrength"
+            />
+            <div v-if="passwordResult.isValid" class="password-strength" :class="passwordResult.strength">
+              密碼強度: {{ passwordResult.message }}
+            </div>
+            <div v-else class="password-strength error">
+              {{ passwordResult.message }}
+            </div>
+          </el-form-item>
+          
+          <el-form-item label="確認密碼" prop="confirmPassword">
+            <el-input 
+              v-model="form.confirmPassword"
+              type="password" 
+              placeholder="請再次輸入密碼"
+              prefix-icon="Lock"
+              show-password
+              @input="validateConfirmPassword"
+            />
+          </el-form-item>
+        </div>
         
-        <el-form-item label="確認密碼" prop="confirmPassword">
-          <el-input 
-            v-model="form.confirmPassword"
-            type="password" 
-            placeholder="請再次輸入密碼"
-            prefix-icon="Lock"
-            show-password
-            @input="validateConfirmPassword"
-          />
-        </el-form-item>
+        <div class="note">
+          <i class="el-icon-info-filled"></i>
+          <p>* 標示為必填欄位，其他資訊可於註冊後補充</p>
+        </div>
         
-        <el-form-item>
+        <div class="form-actions">
           <el-button 
             type="primary" 
             :loading="isLoading" 
             @click="submitForm" 
-            class="register-btn"
+            class="submit-button"
           >
-            下一步
+            <i class="el-icon-arrow-right" v-if="!isLoading"></i>
+            {{ isLoading ? '提交中...' : '下一步' }}
           </el-button>
-        </el-form-item>
+        </div>
       </el-form>
       
       <div class="auth-footer">
@@ -111,6 +143,7 @@ import { User, Message, Lock } from '@element-plus/icons-vue'
 import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
 import api from '../../services/api'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 export default {
   name: 'RegisterPage',
@@ -132,7 +165,7 @@ export default {
       email: '',          // 必填
       password: '',       // 必填
       confirmPassword: '',
-      weight: null,       // 必填（用於計算健康目標）
+      weight: null,       // 必填
     })
     
     const localError = ref('')
@@ -142,13 +175,12 @@ export default {
         {
           validator: (rule, value, callback) => {
             if (!isSubmitAttempted.value && !value) {
-              // 尚未提交且空白，不顯示錯誤
               callback()
               return
             }
             if (!value) {
               callback(new Error('請輸入姓名'))
-            } else if (!isValidName(value)) {
+            } else if (value.length < 2) {
               callback(new Error('姓名至少需要2個字符'))
             } else {
               callback()
@@ -202,8 +234,6 @@ export default {
             }
             if (!value) {
               callback(new Error('請輸入密碼'))
-            } else if (value.length < 8) {
-              callback(new Error('密碼長度必須至少為8個字符'))
             } else {
               const result = validatePassword(value)
               if (!result.isValid) {
@@ -273,6 +303,15 @@ export default {
       })
     }
     
+    const checkEmailExists = async (email) => {
+      try {
+        const res = await axios.post('/api/auth/check-email', { email })
+        return res.data.exists
+      } catch (e) {
+        return false // 若 API 失敗，預設不阻擋
+      }
+    }
+    
     const handleRegister = async () => {
       if (form.password !== form.confirmPassword) {
         localError.value = '兩次輸入的密碼不一致'
@@ -289,6 +328,13 @@ export default {
       if (form.weight === null || form.weight === '') {
         localError.value = '請填寫您的體重'
         if (registerForm.value) registerForm.value.validateField('weight')
+        return
+      }
+      
+      // 檢查 email 是否已註冊
+      const exists = await checkEmailExists(form.email)
+      if (exists) {
+        localError.value = '此電子郵件已經註冊，請使用其他電子郵件或直接登入'
         return
       }
       
@@ -357,30 +403,55 @@ export default {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #f5f7fa;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
 }
 
 .auth-container {
   width: 100%;
   max-width: 700px;
-  padding: 24px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
-  border-radius: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: none;
 }
 
-.progress-bar {
+.auth-header {
+  text-align: center;
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f8f9fa;
+}
+
+.auth-header h1 {
+  margin-bottom: 8px;
+  color: #f08c00;
+  font-weight: 700;
+  font-size: 2.8rem;
+  letter-spacing: -0.5px;
+}
+
+.auth-header p {
+  color: #f08c00;
+  font-weight: 600;
+  font-size: 1.4rem;
+  opacity: 0.9;
+}
+
+/* 新的步驟指示器樣式 */
+.progress-steps {
   display: flex;
   justify-content: space-between;
   margin: 30px 0;
   position: relative;
 }
 
-.progress-bar::before {
+.progress-steps::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  top: 20px;
+  left: 10%;
+  right: 10%;
   height: 2px;
   background-color: #e0e0e0;
   z-index: 0;
@@ -388,138 +459,250 @@ export default {
 
 .step {
   position: relative;
-  width: 32%;
+  width: 33.33%;
   text-align: center;
-  padding: 10px;
-  background-color: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 20px;
-  font-weight: 500;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.step.completed {
-  background-color: #f0fcf0;
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.step.completed .step-icon {
+  background-color: #67c23a;
   border-color: #67c23a;
+  color: white;
+}
+
+.step.completed .step-label {
   color: #67c23a;
 }
 
-.step.active {
-  background-color: #fff8e6;
+.step.active .step-icon {
+  background-color: #f08c00;
   border-color: #f08c00;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(240, 140, 0, 0.25);
+}
+
+.step.active .step-label {
   color: #f08c00;
   font-weight: 600;
 }
 
-.auth-header {
-  text-align: center;
+/* 卡片式表單區塊 */
+.preference-card {
   margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
-.auth-header h1 {
-  color: #ffa940; /* 橘色 */
-  margin-bottom: 8px;
-  font-weight: 700;
-  font-size: 2.2rem;
+.preference-card:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
 
-.auth-header p {
-  color: #303133; /* 深灰/黑色 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.card-header i {
+  font-size: 22px;
+  color: #f08c00;
+}
+
+.card-header h3 {
+  color: #303133;
+  font-size: 24px;
   font-weight: 600;
-  font-size: 1.2rem;
+  margin: 0;
 }
 
+/* 表單元素樣式 */
 .auth-form {
   margin-top: 20px;
 }
 
-/* 全部表單欄位垂直排列 */
-.auth-form >>> .el-form-item {
-  flex-direction: column;
-  align-items: flex-start;
-  margin-bottom: 16px;
+.el-form-item {
+  margin-bottom: 20px;
 }
 
-/* 輸入框寬度全滿 */
-.auth-form >>> .el-form-item__content {
-  width: 100%;
-}
-
-/* 讓表單標籤跟輸入框垂直排列 */
-.auth-form >>> .el-form-item {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.auth-form >>> .el-form-item__label {
-  padding: 0 0 6px 0;
+.el-form-item__label {
+  font-size: 18px;
   font-weight: 600;
-  color: #606266;
 }
 
-/* 輸入框寬度全滿 */
-.auth-form >>> .el-form-item__content {
+.form-hint {
+  font-size: 15px;
+  color: #909399;
+  margin: 4px 0 0;
+}
+
+.weight-input {
   width: 100%;
-}
-
-/* 按鈕橘色風格 */
-.register-btn {
-  width: 100%;
-  background-color: #ffa940;
-  border-color: #ffa940;
-  color: white;
-  font-weight: 600;
-  transition: background-color 0.3s ease;
-  border-radius: 4px;
-}
-
-.register-btn:hover {
-  background-color: #d48806;
-  border-color: #d48806;
-}
-
-/* 立即登入橘色連結 */
-.auth-footer .el-link {
-  color: #ffa940 !important;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.auth-footer {
-  text-align: center;
-  margin-top: 16px;
-  font-size: 14px;
+  max-width: 300px;
 }
 
 /* 密碼強度提示 */
 .password-strength {
   margin-top: 5px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .password-strength.weak {
-  color: #ff4d4f;
+  background-color: #fff0f0;
+  color: #f56c6c;
 }
 
 .password-strength.medium {
-  color: #faad14;
+  background-color: #fdf6ec;
+  color: #e6a23c;
 }
 
 .password-strength.good {
-  color: #52c41a;
+  background-color: #f0f9eb;
+  color: #67c23a;
 }
 
 .password-strength.strong {
-  color: #ffa940; /* 強調橘色 */
+  background-color: #fff0d6;
+  color: #f08c00;
 }
 
 .password-strength.error {
-  color: #ff4d4f;
+  background-color: #fff0f0;
+  color: #f56c6c;
 }
 
-/* 必填標記顏色 */
-.auth-form >>> .el-form-item__label em {
-  color: #ff4d4f;
+/* 精緻備註樣式 */
+.note {
+  font-size: 14px;
+  color: #909399;
+  margin: 20px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+}
+
+.note i {
+  color: #f08c00;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+/* 按鈕樣式改進 */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.submit-button {
+  background: linear-gradient(135deg, #f08c00 0%, #ffb347 100%);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  padding: 12px 40px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(240, 140, 0, 0.25);
+  transition: all 0.3s ease;
+  min-width: 180px;
+}
+
+.submit-button:hover {
+  box-shadow: 0 6px 16px rgba(240, 140, 0, 0.35);
+  transform: translateY(-2px);
+}
+
+.submit-button i {
+  margin-right: 6px;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.auth-footer .el-link {
+  color: #f08c00 !important;
+  font-weight: 600;
+  transition: color 0.3s;
+}
+
+.auth-footer .el-link:hover {
+  color: #d48806 !important;
+  text-decoration: underline;
+}
+
+/* 響應式調整 */
+@media (max-width: 600px) {
+  .register-page {
+    padding: 20px 10px;
+  }
+  
+  .auth-container {
+    border-radius: 8px;
+  }
+  
+  .card-header h3 {
+    font-size: 18px;
+  }
+  
+  .preference-card {
+    padding: 15px;
+    margin-bottom: 16px;
+  }
+  
+  .form-actions {
+    justify-content: center;
+  }
+  
+  .submit-button {
+    width: 100%;
+  }
+  
+  .progress-steps::before {
+    left: 15%;
+    right: 15%;
+  }
 }
 </style>

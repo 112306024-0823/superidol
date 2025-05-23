@@ -19,11 +19,13 @@ def signup():
         if 'error' in result:
             return jsonify(result), 409 if 'exists' in result['error'] else 400
 
-        login_result = login_user({"email": data['email'], "password": data['password']})
-        if 'error' in login_result:
-            return jsonify({"error": "Registration succeeded but login failed"}), 500
-
-        return jsonify(login_result), 201
+        # 註冊成功直接回傳 user_id
+        return jsonify({
+            'user_id': result['user_id'],
+            'name': result['name'],
+            'email': result['email'],
+            'message': result['message']
+        }), 201
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -91,3 +93,20 @@ def get_user():
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@auth_bp.route('/check-email', methods=['POST'])
+def check_email():
+    data = request.get_json() or {}
+    email = data.get('email')
+    if not email:
+        return jsonify({'exists': False, 'error': 'No email provided'}), 400
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1 FROM Users WHERE Email = %s", (email,))
+            exists = cursor.fetchone() is not None
+        return jsonify({'exists': exists})
+    except Exception as e:
+        return jsonify({'exists': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
