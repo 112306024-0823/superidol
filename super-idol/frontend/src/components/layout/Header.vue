@@ -42,7 +42,7 @@
                 <i class="fas fa-id-card"></i>
                 <span>Basic Information</span>
               </router-link>
-              <router-link to="/profile/preferences" class="dropdown-item">
+              <router-link to="/profile/myfavorite" class="dropdown-item">
                 <i class="fas fa-sliders-h"></i>
                 <span>Preferences</span>
               </router-link>
@@ -89,7 +89,7 @@
               <i class="fas fa-id-card"></i>
               <span>Basic Information</span>
             </router-link>
-            <router-link to="/profile/preferences" class="mobile-nav-link" @click="closeMobileMenu">
+            <router-link to="/profile/myfavorite" class="mobile-nav-link" @click="closeMobileMenu">
               <i class="fas fa-sliders-h"></i>
               <span>Preferences</span>
             </router-link>

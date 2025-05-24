@@ -1,550 +1,404 @@
 <template>
   <div class="basic-info-page">
-    <div class="container">
-      <h1 class="page-title">個人資料</h1>
-      
-      <div class="profile-form-container">
-        <form @submit.prevent="saveProfile" class="profile-form">
-          <div class="form-section">
-            <h2 class="section-title">基本資料</h2>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="name" class="form-label">姓名</label>
-                <input 
-                  id="name"
-                  v-model="profile.name"
-                  type="text"
-                  class="form-input"
-                  placeholder="您的姓名"
-                />
+    <el-card class="profile-card">
+      <div class="profile-header">
+        <h2>
+          <i class="el-icon-user" style="color:#f08c00;margin-right:8px"></i>
+          個人基本資料
+        </h2>
+        <el-button
+          v-if="!isEditing"
+          type="warning"
+          icon="el-icon-edit"
+          @click="startEdit"
+          class="edit-btn"
+        >編輯</el-button>
               </div>
-              
-              <div class="form-group">
-                <label for="gender" class="form-label">性別</label>
-                <select 
-                  id="gender"
-                  v-model="profile.gender"
-                  class="form-select"
-                >
-                  <option value="">請選擇</option>
-                  <option value="male">男性</option>
-                  <option value="female">女性</option>
-                  <option value="other">其他</option>
-                </select>
+      <el-divider />
+      <!-- 檢視模式 -->
+      <template v-if="!isEditing">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="姓名">{{ profile.name }}</el-descriptions-item>
+          <el-descriptions-item label="電子郵件">{{ profile.email }}</el-descriptions-item>
+          <el-descriptions-item label="每餐預算">{{ profile.budget }}</el-descriptions-item>
+          <el-descriptions-item label="每週熱量限制">{{ profile.weekcalorielimit }}</el-descriptions-item>
+          <el-descriptions-item label="體重">{{ profile.weight }}</el-descriptions-item>
+        </el-descriptions>
+        <el-divider />
+        <div class="preference-view">
+          <div class="pref-block">
+            <span class="pref-title">食物偏好：</span>
+            <el-tag
+              v-for="type in selectedFoodTypes"
+              :key="type"
+              class="pref-tag food-tag"
+              effect="dark"
+              style="background:#fff7e6;color:#f08c00;border-color:#f08c00"
+            >🍔 {{ type }}</el-tag>
+            <span v-if="!selectedFoodTypes.length" class="pref-empty">無</span>
               </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="birthdate" class="form-label">出生日期</label>
-                <input 
-                  id="birthdate"
-                  v-model="profile.birthdate"
-                  type="date"
-                  class="form-input"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="email" class="form-label">電子郵件</label>
-                <input 
-                  id="email"
-                  v-model="profile.email"
-                  type="email"
-                  class="form-input"
-                  placeholder="您的電子郵件"
-                  disabled
-                />
-              </div>
-            </div>
+          <div class="pref-block">
+            <span class="pref-title">運動偏好：</span>
+            <el-tag
+              v-for="item in selectedExerciseNames"
+              :key="item"
+              class="pref-tag exercise-tag"
+              effect="dark"
+              style="background:#fff7e6;color:#f08c00;border-color:#f08c00"
+            >🏃‍♂️ {{ item }}</el-tag>
+            <span v-if="!selectedExerciseNames.length" class="pref-empty">無</span>
           </div>
-          
-          <div class="form-section">
-            <h2 class="section-title">身體數據</h2>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="height" class="form-label">身高 (cm)</label>
-                <input 
-                  id="height"
-                  v-model.number="profile.height"
-                  type="number"
-                  class="form-input"
-                  placeholder="身高"
-                  min="100"
-                  max="250"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="weight" class="form-label">體重 (kg)</label>
-                <input 
-                  id="weight"
-                  v-model.number="profile.weight"
-                  type="number"
-                  class="form-input"
-                  placeholder="體重"
-                  min="30"
-                  max="300"
-                  step="0.1"
-                />
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="activityLevel" class="form-label">活動水平</label>
-              <select 
-                id="activityLevel"
-                v-model="profile.activityLevel"
-                class="form-select"
-              >
-                <option value="sedentary">久坐不動 (辦公室工作)</option>
-                <option value="light">輕度活動 (每週運動1-2次)</option>
-                <option value="moderate">中度活動 (每週運動3-5次)</option>
-                <option value="active">高度活動 (每週運動6-7次)</option>
-                <option value="veryActive">極高活動 (每天多次高強度運動)</option>
-              </select>
-            </div>
+          <div class="pref-block">
+            <span class="pref-title">餐廳偏好：</span>
+            <el-tag
+              v-for="id in selectedRestaurantIds"
+              :key="id"
+              class="pref-tag restaurant-tag"
+              effect="dark"
+              style="background:#fff7e6;color:#f08c00;border-color:#f08c00"
+            >🏠 {{ getRestaurantName(id) }}</el-tag>
+            <span v-if="!selectedRestaurantIds.length" class="pref-empty">無</span>
           </div>
-          
-          <div class="form-section">
-            <h2 class="section-title">營養目標</h2>
-            
-            <div class="form-group">
-              <label for="calorieGoal" class="form-label">每日卡路里目標</label>
-              <input 
-                id="calorieGoal"
-                v-model.number="profile.calorieGoal"
-                type="number"
-                class="form-input"
-                placeholder="卡路里目標"
-                min="1000"
-                max="5000"
-              />
             </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="proteinGoal" class="form-label">蛋白質目標 (g)</label>
-                <input 
-                  id="proteinGoal"
-                  v-model.number="profile.proteinGoal"
-                  type="number"
-                  class="form-input"
-                  placeholder="蛋白質目標"
-                  min="0"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="carbsGoal" class="form-label">碳水化合物目標 (g)</label>
-                <input 
-                  id="carbsGoal"
-                  v-model.number="profile.carbsGoal"
-                  type="number"
-                  class="form-input"
-                  placeholder="碳水化合物目標"
-                  min="0"
-                />
-              </div>
-              
-              <div class="form-group">
-                <label for="fatGoal" class="form-label">脂肪目標 (g)</label>
-                <input 
-                  id="fatGoal"
-                  v-model.number="profile.fatGoal"
-                  type="number"
-                  class="form-input"
-                  placeholder="脂肪目標"
-                  min="0"
-                />
-              </div>
-            </div>
+      </template>
+      <!-- 編輯模式 -->
+      <template v-else>
+        <el-form :model="editProfile" label-width="110px" class="profile-form">
+          <el-form-item label="姓名">
+            <el-input v-model="editProfile.name" />
+          </el-form-item>
+          <el-form-item label="電子郵件">
+            <el-input v-model="editProfile.email" />
+          </el-form-item>
+          <el-form-item label="每餐預算">
+            <el-input-number v-model="editProfile.budget" :min="0" />
+          </el-form-item>
+          <el-form-item label="每週熱量限制">
+            <el-input-number v-model="editProfile.weekcalorielimit" :min="0" />
+          </el-form-item>
+          <el-form-item label="體重">
+            <el-input-number v-model="editProfile.weight" :min="0" />
+          </el-form-item>
+        </el-form>
+        <el-divider />
+        <el-card class="preference-card" shadow="never">
+          <div class="preference-header">
+            <h3 style="color:#f08c00">食物偏好</h3>
           </div>
-          
-          <div class="form-section">
-            <h2 class="section-title">食物偏好設置</h2>
-            
-            <div class="form-group">
-              <label class="form-label">偏好食物類型</label>
-              <div class="checkbox-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.foodPreferences.chinese" />
-                  <span>中式料理</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.foodPreferences.western" />
-                  <span>西式料理</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.foodPreferences.japanese" />
-                  <span>日式料理</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.foodPreferences.korean" />
-                  <span>韓式料理</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.foodPreferences.vegetarian" />
-                  <span>素食料理</span>
-                </label>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label class="form-label">飲食限制</label>
-              <div class="checkbox-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.dietaryRestrictions.glutenFree" />
-                  <span>無麩質</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.dietaryRestrictions.lactoseFree" />
-                  <span>無乳糖</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.dietaryRestrictions.nutFree" />
-                  <span>無堅果</span>
-                </label>
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="profile.dietaryRestrictions.seafoodAllergy" />
-                  <span>海鮮過敏</span>
-                </label>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="spicyLevel" class="form-label">辣度喜好</label>
-              <div class="spicy-level-selector">
-                <div class="spicy-level-options">
-                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 0 }">
-                    <input type="radio" v-model="profile.spicyLevel" :value="0" />
-                    <span>不吃辣</span>
-                  </label>
-                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 1 }">
-                    <input type="radio" v-model="profile.spicyLevel" :value="1" />
-                    <span>微辣</span>
-                  </label>
-                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 2 }">
-                    <input type="radio" v-model="profile.spicyLevel" :value="2" />
-                    <span>中辣</span>
-                  </label>
-                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 3 }">
-                    <input type="radio" v-model="profile.spicyLevel" :value="3" />
-                    <span>重辣</span>
-                  </label>
-                </div>
-                <div class="spicy-indicator">
-                  <i class="fas fa-pepper-hot" v-for="n in profile.spicyLevel + 1" :key="n"></i>
-                </div>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="priceRange" class="form-label">價格預算</label>
-              <div class="price-range">
-                <span>低價</span>
-                <input 
-                  type="range" 
-                  v-model.number="profile.priceRange" 
-                  min="1" 
-                  max="5" 
-                  class="range-slider" 
-                />
-                <span>高價</span>
-              </div>
-              <div class="price-indicator">
-                <i class="fas fa-dollar-sign" v-for="n in profile.priceRange" :key="n"></i>
-              </div>
-            </div>
+          <el-checkbox-group v-model="editSelectedFoodTypes">
+            <el-checkbox v-for="type in foodTypes" :key="type.name" :label="type.name">
+              <span style="color:#f08c00">🍔</span> {{ type.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-card>
+        <el-card class="preference-card" shadow="never">
+          <div class="preference-header">
+            <h3 style="color:#f08c00">運動偏好</h3>
           </div>
-          
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">儲存變更</button>
-            <button type="button" class="btn btn-secondary" @click="resetForm">取消</button>
+          <el-checkbox-group v-model="editSelectedExerciseNames">
+            <el-checkbox v-for="item in exerciseItems" :key="item.name" :label="item.name">
+              <span style="color:#f08c00">🏃‍♂️</span> {{ item.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-card>
+        <el-card class="preference-card" shadow="never">
+          <div class="preference-header">
+            <h3 style="color:#f08c00">餐廳偏好</h3>
           </div>
-        </form>
+          <el-checkbox-group v-model="editSelectedRestaurantIds">
+            <el-checkbox v-for="r in restaurants" :key="r.id" :label="r.id">
+              <span style="color:#f08c00">🏠</span> {{ r.name }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </el-card>
+        <div class="form-actions">
+          <el-button type="warning" :loading="isLoading" @click="saveEdit" class="save-btn">儲存</el-button>
+          <el-button @click="cancelEdit">取消</el-button>
       </div>
-    </div>
+      </template>
+      <el-dialog v-model="dialogVisible" title="訊息" width="300">
+        <span>{{ dialogMsg }}</span>
+        <template #footer>
+          <el-button type="primary" @click="dialogVisible = false">確定</el-button>
+        </template>
+      </el-dialog>
+      <el-loading v-if="isLoading" lock text="載入中..." />
+    </el-card>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '../../store/auth'
+import { ref, reactive, onMounted } from 'vue'
+import axios from 'axios'
 
 export default {
   name: 'BasicInfo',
   setup() {
-    const authStore = useAuthStore()
-    
-    // 個人資料狀態
+    // 狀態
     const profile = ref({
       name: '',
-      gender: '',
-      birthdate: '',
       email: '',
-      height: null,
-      weight: null,
-      activityLevel: 'moderate',
-      calorieGoal: 2000,
-      proteinGoal: 150,
-      carbsGoal: 200,
-      fatGoal: 65,
-      foodPreferences: {
-        chinese: true,
-        western: true,
-        japanese: false,
-        korean: false,
-        vegetarian: false
-      },
-      dietaryRestrictions: {
-        glutenFree: false,
-        lactoseFree: false,
-        nutFree: false,
-        seafoodAllergy: false
-      },
-      spicyLevel: 1,
-      priceRange: 3
+      budget: null,
+      weekcalorielimit: null,
+      weight: null
     })
+    const isLoading = ref(false)
+    const isEditing = ref(false)
+    const errorMsg = ref('')
+    // 偏好選項
+    const foodTypes = ref([])
+    const exerciseItems = ref([])
+    const restaurants = ref([])
+    // 使用者已選偏好
+    const selectedFoodTypes = ref([])
+    const selectedExerciseNames = ref([])
+    const selectedRestaurantIds = ref([])
+    // 編輯用暫存
+    const editProfile = reactive({
+      name: '',
+      email: '',
+      budget: null,
+      weekcalorielimit: null,
+      weight: null
+    })
+    const editSelectedFoodTypes = ref([])
+    const editSelectedExerciseNames = ref([])
+    const editSelectedRestaurantIds = ref([])
+    // dialog
+    const dialogVisible = ref(false)
+    const dialogMsg = ref('')
+
+    // 載入所有可選項目
+    const fetchOptions = async () => {
+      const [foodRes, exerciseRes, restaurantRes] = await Promise.all([
+        axios.get('/api/food-types'),
+        axios.get('/api/exercise-items'),
+        axios.get('/api/restaurants')
+      ])
+      foodTypes.value = foodRes.data
+      exerciseItems.value = exerciseRes.data
+      restaurants.value = restaurantRes.data
+    }
+
+    // 載入目前使用者偏好
+    const fetchUserPreferences = async (userId) => {
+      try {
+        const [foodPref, exercisePref, restaurantPref] = await Promise.all([
+          axios.get('/api/user/food-preferences', { params: { user_id: userId } }),
+          axios.get('/api/user/exercise-preferences', { params: { user_id: userId } }),
+          axios.get('/api/user/restaurant-preferences', { params: { user_id: userId } })
+        ])
+        selectedFoodTypes.value = foodPref.data.food_types || []
+        selectedExerciseNames.value = exercisePref.data.exercise_names || []
+        selectedRestaurantIds.value = restaurantPref.data.restaurant_ids || []
+      } catch (err) {
+        // 若查無偏好可忽略
+      }
+    }
     
     // 載入個人資料
-    onMounted(async () => {
-      // 此處應該從API或store取得資料
-      // 目前使用模擬資料
-      if (authStore.user) {
-        profile.value.name = authStore.user.name || ''
-        profile.value.email = authStore.user.email || ''
+    const fetchProfile = async () => {
+      isLoading.value = true
+      errorMsg.value = ''
+      try {
+        const token = localStorage.getItem('token')
+        const res = await axios.get('/api/auth/user', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        profile.value.name = res.data.name
+        profile.value.email = res.data.email
+        profile.value.budget = res.data.budget
+        profile.value.weekcalorielimit = res.data.weekCalorieLimit
+        profile.value.weight = res.data.weight
+      } catch (err) {
+        errorMsg.value = err.response?.data?.error || '載入個人資料失敗'
+      } finally {
+        isLoading.value = false
       }
+    }
+
+    // 進入編輯模式
+    const startEdit = () => {
+      editProfile.name = profile.value.name
+      editProfile.email = profile.value.email
+      editProfile.budget = profile.value.budget
+      editProfile.weekcalorielimit = profile.value.weekcalorielimit
+      editProfile.weight = profile.value.weight
+      editSelectedFoodTypes.value = [...selectedFoodTypes.value]
+      editSelectedExerciseNames.value = [...selectedExerciseNames.value]
+      editSelectedRestaurantIds.value = [...selectedRestaurantIds.value]
+      isEditing.value = true
+    }
+
+    // 儲存編輯
+    const saveEdit = async () => {
+      isLoading.value = true
+      errorMsg.value = ''
+      try {
+        const token = localStorage.getItem('token')
+        const userId = Number(localStorage.getItem('userId'))
+        if (!userId) {
+          errorMsg.value = '找不到使用者 ID，請重新登入'
+          isLoading.value = false
+          return
+        }
+        // 1. 儲存基本資料
+        const payload = {
+          name: editProfile.name,
+          email: editProfile.email,
+          budget: editProfile.budget,
+          weekcalorielimit: editProfile.weekcalorielimit,
+          weight: editProfile.weight
+        }
+        await axios.put('/api/auth/profile', payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        // 2. 儲存三種偏好（PUT）
+        await axios.put('/api/user/food-preferences', { user_id: userId, food_types: editSelectedFoodTypes.value })
+        await axios.put('/api/user/exercise-preferences', { user_id: userId, exercise_names: editSelectedExerciseNames.value })
+        await axios.put('/api/user/restaurant-preferences', { user_id: userId, restaurant_ids: editSelectedRestaurantIds.value })
+        // 更新顯示資料
+        profile.value.name = editProfile.name
+        profile.value.email = editProfile.email
+        profile.value.budget = editProfile.budget
+        profile.value.weekcalorielimit = editProfile.weekcalorielimit
+        profile.value.weight = editProfile.weight
+        selectedFoodTypes.value = [...editSelectedFoodTypes.value]
+        selectedExerciseNames.value = [...editSelectedExerciseNames.value]
+        selectedRestaurantIds.value = [...editSelectedRestaurantIds.value]
+        isEditing.value = false
+        dialogMsg.value = '資料已儲存！'
+        dialogVisible.value = true
+      } catch (err) {
+        errorMsg.value = err.response?.data?.error || '儲存失敗'
+        dialogMsg.value = errorMsg.value
+        dialogVisible.value = true
+      } finally {
+        isLoading.value = false
+      }
+    }
+
+    // 取消編輯
+    const cancelEdit = () => {
+      isEditing.value = false
+      errorMsg.value = ''
+    }
+
+    // 餐廳名稱查找
+    const getRestaurantName = (id) => {
+      const r = restaurants.value.find(r => r.id === id)
+      return r ? r.name : id
+    }
+
+    onMounted(async () => {
+      await fetchOptions()
+      await fetchProfile()
+      const userId = Number(localStorage.getItem('userId'))
+      if (userId) await fetchUserPreferences(userId)
     })
-    
-    // 儲存個人資料
-    const saveProfile = async () => {
-      // 實際實作中應該呼叫API更新資料
-      console.log('儲存資料:', profile.value)
-      
-      // 存储用户资料到 localStorage，以便在用户偏好和食物推荐中使用
-      localStorage.setItem('userProfile', JSON.stringify(profile.value))
-      
-      // TODO: 呼叫API儲存資料
-      alert('資料已儲存！')
-    }
-    
-    // 重置表單
-    const resetForm = () => {
-      // 重新載入原始資料
-      onMounted()
-    }
     
     return {
       profile,
-      saveProfile,
-      resetForm
+      isLoading,
+      isEditing,
+      errorMsg,
+      foodTypes,
+      exerciseItems,
+      restaurants,
+      selectedFoodTypes,
+      selectedExerciseNames,
+      selectedRestaurantIds,
+      editProfile,
+      editSelectedFoodTypes,
+      editSelectedExerciseNames,
+      editSelectedRestaurantIds,
+      startEdit,
+      saveEdit,
+      cancelEdit,
+      dialogVisible,
+      dialogMsg,
+      getRestaurantName
     }
   }
 }
 </script>
 
 <style scoped>
-
 .basic-info-page {
-  padding: 20px 0;
-}
-
-.page-title {
-  margin-bottom: 24px;
-  font-size: 28px;
-  color: var(--text-color);
-}
-
-.profile-form-container {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 24px;
-}
-
-.form-section {
-  margin-bottom: 32px;
-}
-
-.section-title {
-  font-size: 20px;
-  margin-bottom: 16px;
-  color: var(--primary-color);
-  border-bottom: 1px solid #eee;
-  padding-bottom: 8px;
-}
-
-.form-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 16px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 0;
+  background: #fff7e6;
 }
-
-.form-group {
-  flex: 1;
-  min-width: 200px;
-  margin-bottom: 16px;
-}
-
-.form-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.form-input,
-.form-select {
+.profile-card {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 16px;
+  max-width: 650px;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(240,140,0,0.10);
+  padding: 32px 24px 24px 24px;
+  border: 2px solid #f08c0022;
+  background: #fff;
 }
-
-.form-input:focus,
-.form-select:focus {
-  border-color: var(--primary-color);
-  outline: none;
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
 }
-
+.edit-btn, .save-btn {
+  background: #f08c00 !important;
+  border-color: #f08c00 !important;
+  color: #fff !important;
+}
+.preference-card, .preference-view {
+  margin: 18px 0 0 0;
+  padding: 18px 16px;
+  border-radius: 8px;
+  background: #f9fafb;
+  box-shadow: 0 2px 8px rgba(240,140,0,0.04);
+  border: 1.5px solid #f08c0033;
+}
+.preference-header {
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: #f08c00;
+  display: flex;
+  align-items: center;
+}
+.pref-block {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+.pref-title {
+  font-weight: 600;
+  color: #f08c00;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+}
+.pref-tag {
+  margin-right: 6px;
+  margin-bottom: 4px;
+  font-size: 15px;
+  border-radius: 16px;
+  padding: 0 10px;
+  background: #fff7e6;
+  color: #f08c00;
+  border-color: #f08c00;
+}
+.pref-empty {
+  color: #bbb;
+  font-style: italic;
+}
 .form-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 24px;
 }
-
-/* 按鈕基本樣式 */
-.btn {
-  padding: 10px 20px;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
-  user-select: none;
-}
-
-.btn-primary {
-  background-color: #f08c00; /* 橘色 */
-  color: white;
-  border-color: #f08c00;
-}
-
-.btn-primary:hover {
-  background-color: white;
-  color: #f08c00;
-  border-color: #f08c00;
-}
-
-.btn-primary:hover {
-  background-color: #d97706;
-  color: white;
-  border-color: #d97706;
-}
-
-.btn-secondary:hover {
-  background-color: white;
-  color: #d97706;
-  border-color: #d97706;
-}
-
-/* 新增樣式 */
-.checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 4px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  padding: 6px 12px;
-  border-radius: 16px;
-  background-color: #f5f5f5;
-  transition: all 0.2s;
-}
-
-.checkbox-label:hover {
-  background-color: #efefef;
-}
-
-.checkbox-label input[type="checkbox"] {
-  margin-right: 8px;
-}
-
-.checkbox-label input[type="checkbox"]:checked + span {
-  color: var(--primary-color);
-  font-weight: 500;
-}
-
-.spicy-level-selector {
-  margin-top: 8px;
-}
-
-.spicy-level-options {
-  display: flex;
-  gap: 10px;
-}
-
-.spicy-option {
-  flex: 1;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  background-color: #f5f5f5;
-  text-align: center;
-  transition: all 0.2s;
-}
-
-.spicy-option input[type="radio"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.spicy-option.active {
-  background-color: var(--primary-color);
-  color: white;
-}
-
-.spicy-indicator {
-  margin-top: 8px;
-  color: #ff4d4f;
-}
-
-.price-range {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 8px;
-}
-
-.range-slider {
-  flex: 1;
-}
-
-.price-indicator {
-  margin-top: 8px;
-  color: #389e0d;
-}
-
-@media (max-width: 768px) {
-  .form-row {
-    flex-direction: column;
-  }
-  
-  .form-group {
-    width: 100%;
-  }
+@media (max-width: 700px) {
+  .profile-card { padding: 16px 4px; }
 }
 </style> 

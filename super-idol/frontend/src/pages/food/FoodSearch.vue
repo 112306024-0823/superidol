@@ -119,9 +119,9 @@
                 </button>
                 <button class="action-btn favorite-btn" @click="addToFavorites(food)">
                   <i class="el-icon-star-off"></i>
-                  加入收藏
+                  加入最愛
                 </button>
-                <button class="action-btn record-btn" @click="addToFoodRecord(food)">
+                <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
                   <i class="el-icon-plus"></i>
                   加入記錄
                 </button>
@@ -169,9 +169,9 @@
                 </button>
                 <button class="action-btn favorite-btn" @click="addToFavorites(food)">
                   <i class="el-icon-star-off"></i>
-                  加入收藏
+                  加入最愛
                 </button>
-                <button class="action-btn record-btn" @click="addToFoodRecord(food)">
+                <button class="action-btn record-btn" @click="openFoodRecordModal(food)">
                   <i class="el-icon-plus"></i>
                   加入記錄
                 </button>
@@ -228,61 +228,7 @@
       </div>
 
       <!-- Add to Record Modal -->
-      <div v-if="showModal" class="modal-overlay">
-        <div class="modal modal-record">
-          <div class="modal-header">
-            <h3>添加食物記錄</h3>
-            <button class="close-button" @click="closeModal">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="meal-type-selector">
-              <h4>選擇餐點類型</h4>
-              <div class="meal-type-options">
-                <label class="meal-type-option">
-                  <input type="radio" value="早餐" v-model="selectedMealType" />
-                  <span class="meal-type-label">
-                    <i class="el-icon-sunrise"></i>
-                    早餐
-                  </span>
-                </label>
-                <label class="meal-type-option">
-                  <input type="radio" value="午餐" v-model="selectedMealType" />
-                  <span class="meal-type-label">
-                    <i class="el-icon-sunny"></i>
-                    午餐
-                  </span>
-                </label>
-                <label class="meal-type-option">
-                  <input type="radio" value="晚餐" v-model="selectedMealType" />
-                  <span class="meal-type-label">
-                    <i class="el-icon-sunset"></i>
-                    晚餐
-                  </span>
-                </label>
-                <label class="meal-type-option">
-                  <input type="radio" value="點心" v-model="selectedMealType" />
-                  <span class="meal-type-label">
-                    <i class="el-icon-dessert"></i>
-                    點心
-                  </span>
-                </label>
-              </div>
-            </div>
-            <div class="quantity-selector">
-              <h4>選擇數量</h4>
-              <div class="quantity-controls">
-                <button class="quantity-btn" @click="quantity > 1 && quantity--">-</button>
-                <input type="number" v-model="quantity" min="1" class="quantity-input" />
-                <button class="quantity-btn" @click="quantity++">+</button>
-              </div>
-            </div>
-            <div class="modal-actions">
-              <button class="modal-btn cancel-btn" @click="closeModal">取消</button>
-              <button class="modal-btn save-btn" @click="saveRecord">儲存</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FoodRecordModal v-model:visible="showRecordModal" :food="currentFood" @saved="onRecordSaved" />
     </div>
   </div>
 </template>
@@ -292,9 +238,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 
 export default {
   name: 'FoodSearch',
+  components: { FoodRecordModal },
   setup() {
     const router = useRouter() // 取得 router 實例
 
@@ -328,10 +276,16 @@ export default {
     })
     const exerciseSearch = ref('')
 
-    const showModal = ref(false)
-    const selectedMealType = ref('')
-    const quantity = ref(1)
+    const showRecordModal = ref(false)
     const currentFood = ref(null)
+    const openFoodRecordModal = (food) => {
+      currentFood.value = food
+      showRecordModal.value = true
+    }
+    const onRecordSaved = () => {
+      // 可選：儲存後自動跳轉或刷新
+      router.push({ name: 'FoodRecord' })
+    }
 
     const handleSearch = async () => {
       const { priceMin, priceMax, calMin, calMax, name, restaurant, type } = filters.value
@@ -398,7 +352,7 @@ export default {
           return
         }
         
-        await fetch('http://localhost:5000/api/food/favorites', {
+        await fetch('http://localhost:5000/api/myfavorite/favorites', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -411,8 +365,8 @@ export default {
         
         ElMessage.success('已添加到我的最愛')
       } catch (error) {
-        console.error('添加到收藏失敗:', error)
-        ElMessage.error('添加到收藏失敗，請稍後再試')
+        console.error('添加到最愛失敗:', error)
+        ElMessage.error('添加到最愛失敗，請稍後再試')
       }
     }
 
@@ -461,65 +415,6 @@ export default {
         walking: undefined
       }
       exerciseSearch.value = ''
-    }
-
-    //Add to Record
-    const addToFoodRecord = (food) => {
-      currentFood.value = food
-      showModal.value = true
-    }
-
-    const closeModal = () => {
-      showModal.value = false
-      selectedMealType.value = ''
-      quantity.value = 1
-      currentFood.value = null
-    }
-
-    const saveRecord = async () => {
-      if (!selectedMealType.value) {
-        ElMessage.warning('請選擇餐點類型')
-        return
-      }
-      
-      try {
-        const userId = localStorage.getItem('userId')
-        if (!userId) {
-          ElMessage.warning('請先登入')
-          return
-        }
-        
-        const today = new Date().toISOString().split('T')[0] // 取得今天日期，YYYY-MM-DD格式
-        
-        const response = await fetch('http://localhost:5000/api/food/record', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: parseInt(userId),
-            food_id: currentFood.value.id,
-            mealtime: selectedMealType.value,
-            quantity: quantity.value,
-            date: today
-          })
-        })
-        
-        if (!response.ok) {
-          const errorText = await response.text()
-          console.error('添加食物記錄錯誤:', errorText)
-          throw new Error(`API 請求失敗: ${response.status} ${response.statusText}`)
-        }
-        
-        ElMessage.success('已成功添加到食物記錄')
-        closeModal()
-        
-        // 可以選擇性跳轉到記錄頁面
-        router.push({ name: 'FoodRecord' })
-      } catch (error) {
-        console.error('添加食物記錄失敗:', error)
-        ElMessage.error('添加食物記錄失敗，請稍後再試')
-      }
     }
 
     onMounted(async () => {
@@ -597,7 +492,7 @@ export default {
         if (!userId) {
           // 如果未登入，使用默認值
           userPreferences.value = {
-            foodPreferences: { singleDish: true, setMeal: true },
+            Food_Preferences: { singleDish: true, setMeal: true },
             dietaryRestrictions: {},
             spicyLevel: 1,
             priceRange: 3
@@ -611,7 +506,7 @@ export default {
         if (storedProfile) {
           const profileData = JSON.parse(storedProfile)
           userPreferences.value = {
-            foodPreferences: profileData.foodPreferences || { singleDish: true, setMeal: true },
+            Food_Preferences: profileData.Food_Preferences || { singleDish: true, setMeal: true },
             dietaryRestrictions: profileData.dietaryRestrictions || {},
             spicyLevel: profileData.spicyLevel || 0,
             priceRange: profileData.priceRange || 3
@@ -619,7 +514,7 @@ export default {
         } else {
           // 如果沒有存儲的偏好，使用默認值
           userPreferences.value = {
-            foodPreferences: { singleDish: true, setMeal: true },
+            Food_Preferences: { singleDish: true, setMeal: true },
             dietaryRestrictions: {},
             spicyLevel: 1,
             priceRange: 3
@@ -629,7 +524,7 @@ export default {
         console.error('載入用戶偏好失敗:', error)
         // 使用默認值
         userPreferences.value = {
-          foodPreferences: { singleDish: true, setMeal: true },
+          Food_Preferences: { singleDish: true, setMeal: true },
           dietaryRestrictions: {},
           spicyLevel: 1,
           priceRange: 3
@@ -654,9 +549,9 @@ export default {
         
         // 根據食物類型給予分數
         if (food.type === '單點') {
-          score += userPreferences.value.foodPreferences.singleDish ? 3 : 0
+          score += userPreferences.value.Food_Preferences.singleDish ? 3 : 0
         } else if (food.type === '套餐') {
-          score += userPreferences.value.foodPreferences.setMeal ? 3 : 0
+          score += userPreferences.value.Food_Preferences.setMeal ? 3 : 0
         }
         
         // 營養考量 (卡路里打分，假設用戶想要中等卡路里的食物，偏離中值越遠分數越低)
@@ -687,13 +582,10 @@ export default {
       openExerciseModal,
       calculateExercise,
       closeExerciseModal,
-      addToFoodRecord,
-      showModal,
-      selectedMealType,
-      quantity,
+      showRecordModal,
       currentFood,
-      closeModal,
-      saveRecord
+      openFoodRecordModal,
+      onRecordSaved
     }
   }
 }
@@ -1265,6 +1157,3 @@ export default {
   }
 }
 </style>
-
-
-

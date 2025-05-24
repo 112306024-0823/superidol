@@ -5,7 +5,6 @@ import Register from '../pages/auth/Register.vue'
 import UserPreferences from '../pages/auth/UserPreferences.vue'
 import BasicInfo from '../pages/profile/BasicInfo.vue'
 import MyFavorite from '../pages/profile/MyFavorite.vue'
-import Preferences from '../pages/profile/Preferences.vue'
 import FoodSearch from '../pages/food/FoodSearch.vue'
 import FoodRecord from '../pages/food/FoodRecord.vue'
 import ExerciseRecord from '../pages/exercise/ExerciseRecord.vue'
@@ -54,15 +53,15 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/profile/favorites',
+    path: '/profile/myfavorite',
     name: 'MyFavorite',
     component: MyFavorite,
     meta: { requiresAuth: true }
   },
   {
-    path: '/profile/preferences',
-    name: 'Preferences',
-    component: Preferences,
+    path: '/profile/myfavorite',
+    name: 'MyFavorite',
+    component: MyFavorite,
     meta: { requiresAuth: true }
   },
   {

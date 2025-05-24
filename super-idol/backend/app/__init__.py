@@ -43,12 +43,13 @@ def create_app():
         return jsonify({"status": "success", "message": "CORS test passed"})
     
     # 註冊藍圖
-    from app.api import auth_bp, food_bp, exercise_bp, report_bp
+    from app.api import auth_bp, food_bp, exercise_bp, report_bp, preferences_bp, my_favorite_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(food_bp, url_prefix='/api/food')
     app.register_blueprint(exercise_bp, url_prefix='/api/exercise')
     app.register_blueprint(report_bp, url_prefix='/api/report')
-    
+    app.register_blueprint(preferences_bp, url_prefix='/api')
+    app.register_blueprint(my_favorite_bp, url_prefix='/api/myfavorite')
     # 記錄應用啟動信息
     logging.info(f"Flask應用已啟動，環境: {env}")
     logging.info(f"數據庫連接: {app.config.get('MYSQL_HOST')}:{app.config.get('MYSQL_PORT')}")

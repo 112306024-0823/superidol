@@ -292,15 +292,6 @@ def delete_food_record(user_id, record_id):
         conn.close()
 
 def get_user_favorites(user_id):
-    """
-    獲取用戶收藏的食物
-    
-    Args:
-        user_id (int): 用戶ID
-        
-    Returns:
-        list: 收藏的食物列表
-    """
     conn = get_db_connection()
     try:
         with conn.cursor() as cursor:
@@ -312,22 +303,19 @@ def get_user_favorites(user_id):
                     f.Price,
                     f.Calories,
                     f.Food_Type,
-                    f.Set_Type,
-                    fp.PreferenceID
-                FROM FoodPreference fp
-                JOIN Food f ON fp.FoodID = f.FoodID
+                    f.Set_Type
+                FROM My_Favorite mf
+                JOIN Food f ON mf.FoodID = f.FoodID
                 LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
-                WHERE fp.UserID = %s
-                ORDER BY fp.CreatedAt DESC
+                WHERE mf.UserID = %s
+                ORDER BY f.Name
             """
             cursor.execute(sql, (user_id,))
             favorites = cursor.fetchall()
-            
             # 處理結果為 JSON 格式
             results = []
             for fav in favorites:
                 results.append({
-                    'preference_id': fav['PreferenceID'],
                     'food_id': fav['FoodID'],
                     'name': fav['Name'],
                     'restaurant': fav['Restaurant'],
@@ -336,25 +324,13 @@ def get_user_favorites(user_id):
                     'food_type': fav['Food_Type'],
                     'type': fav['Set_Type']
                 })
-            
             return results
-            
     except Exception as e:
         raise Exception(f"Error retrieving favorites: {str(e)}")
     finally:
         conn.close()
 
 def add_to_favorites(user_id, food_id):
-    """
-    添加食物到用戶收藏
-    
-    Args:
-        user_id (int): 用戶ID
-        food_id (int): 食物ID
-        
-    Returns:
-        dict: 操作結果
-    """
     conn = get_db_connection()
     try:
         # 檢查用戶是否存在
@@ -363,41 +339,27 @@ def add_to_favorites(user_id, food_id):
             user = cursor.fetchone()
             if not user:
                 raise ValueError(f"User with ID {user_id} not found")
-        
         # 檢查食物是否存在
         with conn.cursor() as cursor:
             cursor.execute("SELECT FoodID FROM Food WHERE FoodID = %s", (food_id,))
             food = cursor.fetchone()
             if not food:
                 raise ValueError(f"Food with ID {food_id} not found")
-        
         # 檢查是否已經收藏
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT PreferenceID FROM FoodPreference WHERE UserID = %s AND FoodID = %s", 
+                "SELECT 1 FROM My_Favorite WHERE UserID = %s AND FoodID = %s",
                 (user_id, food_id)
             )
             existing = cursor.fetchone()
             if existing:
-                return {
-                    "message": "Food already in favorites"
-                }
-        
+                return {"message": "Food already in favorites"}
         # 添加到收藏
         with conn.cursor() as cursor:
-            sql = """
-                INSERT INTO FoodPreference (UserID, FoodID, CreatedAt) 
-                VALUES (%s, %s, NOW())
-            """
+            sql = "INSERT INTO My_Favorite (UserID, FoodID) VALUES (%s, %s)"
             cursor.execute(sql, (user_id, food_id))
-            preference_id = cursor.lastrowid
             conn.commit()
-            
-            return {
-                "preference_id": preference_id,
-                "message": "Food added to favorites successfully"
-            }
-            
+            return {"message": "Food added to favorites successfully"}
     except Exception as e:
         conn.rollback()
         raise Exception(f"Error adding food to favorites: {str(e)}")
@@ -405,40 +367,25 @@ def add_to_favorites(user_id, food_id):
         conn.close()
 
 def remove_from_favorites(user_id, food_id):
-    """
-    從用戶收藏中移除食物
-    
-    Args:
-        user_id (int): 用戶ID
-        food_id (int): 食物ID
-        
-    Returns:
-        dict: 操作結果
-    """
     conn = get_db_connection()
     try:
         # 檢查是否存在該收藏
         with conn.cursor() as cursor:
             cursor.execute(
-                "SELECT PreferenceID FROM FoodPreference WHERE UserID = %s AND FoodID = %s", 
+                "SELECT 1 FROM My_Favorite WHERE UserID = %s AND FoodID = %s",
                 (user_id, food_id)
             )
-            preference = cursor.fetchone()
-            if not preference:
+            favorite = cursor.fetchone()
+            if not favorite:
                 raise ValueError(f"Food with ID {food_id} not found in user's favorites")
-        
         # 從收藏中移除
         with conn.cursor() as cursor:
             cursor.execute(
-                "DELETE FROM FoodPreference WHERE UserID = %s AND FoodID = %s",
+                "DELETE FROM My_Favorite WHERE UserID = %s AND FoodID = %s",
                 (user_id, food_id)
             )
             conn.commit()
-            
-            return {
-                "message": "Food removed from favorites successfully"
-            }
-            
+            return {"message": "Food removed from favorites successfully"}
     except Exception as e:
         conn.rollback()
         raise Exception(f"Error removing food from favorites: {str(e)}")

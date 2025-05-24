@@ -1,6 +1,6 @@
 <template>
   <div class="preferences-page">
-    <el-card class="auth-container">
+    <el-card class="auth-container" shadow="hover">
       <div class="auth-header">
         <h1>Super Idol</h1>
         <p>設定您的偏好</p>
@@ -8,16 +8,25 @@
       
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
-      <div class="progress-bar">
-        <div class="step completed">基本資訊</div>
-        <div class="step active">偏好設定</div>
-        <div class="step">完成</div>
+      <div class="progress-steps">
+        <div class="step completed">
+          <div class="step-icon">1</div>
+          <div class="step-label">基本資訊</div>
+        </div>
+        <div class="step active">
+          <div class="step-icon">2</div>
+          <div class="step-label">偏好設定</div>
+        </div>
+        <div class="step">
+          <div class="step-icon">3</div>
+          <div class="step-label">完成</div>
+        </div>
       </div>
       
       <!-- 顯示載入中狀態 -->
       <div v-if="!dataLoaded" class="loading-container">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <p>載入中，請稍候...</p>
+        <p>載入偏好資料中，請稍候...</p>
       </div>
       
       <!-- 已載入才顯示表單 -->
@@ -28,8 +37,11 @@
           ref="preferencesForm"
         >
           <!-- 預算和熱量限制 -->
-          <div class="section">
-            <h3 class="section-title">個人設定</h3>
+          <div class="preference-card">
+            <div class="card-header">
+              <i class="el-icon-setting"></i>
+              <h3>個人設定</h3>
+            </div>
             
             <el-form-item label="每餐預算 *" prop="budget">
               <el-input-number 
@@ -37,8 +49,9 @@
                 :min="0" 
                 placeholder="請輸入預算（必填）" 
                 controls-position="right"
-                style="width: 100%;"
+                class="budget-input"
               />
+              <div class="form-hint">設定每餐的預算上限</div>
             </el-form-item>
 
             <el-form-item label="每週熱量限制 *" prop="calorieLimit">
@@ -47,84 +60,98 @@
                 :min="0" 
                 placeholder="請輸入每週熱量限制（必填）" 
                 controls-position="right"
-                style="width: 100%;"
+                class="calorie-input"
               />
+              <div class="form-hint">設定每週攝取熱量的最大值</div>
             </el-form-item>
           </div>
           
           <!-- 食物偏好 -->
-          <div class="section">
-            <h3 class="section-title">飲食偏好</h3>
-            
-            <!-- 店家偏好 -->
-            <el-form-item label="店家偏好">
-              <div class="checkbox-group">
-                <el-checkbox v-model="preferences.storePreferences.fastFood">速食店</el-checkbox>
-                <el-checkbox v-model="preferences.storePreferences.beverageShop">手搖飲</el-checkbox>
-              </div>
-            </el-form-item>
-            
-            <!-- 食物類型偏好 -->
+          <div class="preference-card">
+            <div class="card-header">
+              <i class="el-icon-food"></i>
+              <h3>飲食偏好</h3>
+            </div>
             <el-form-item label="食物類型偏好">
-              <div class="checkbox-group">
-                <div class="checkbox-row">
-                  <h4>速食店:</h4>
-                  <el-checkbox v-model="preferences.foodTypePreferences.burger">漢堡</el-checkbox>
-                  <el-checkbox v-model="preferences.foodTypePreferences.friedChicken">炸雞</el-checkbox>
-                  <el-checkbox v-model="preferences.foodTypePreferences.fries">薯條</el-checkbox>
-                  <el-checkbox v-model="preferences.foodTypePreferences.sandwich">三明治</el-checkbox>
-                </div>
-                <div class="checkbox-row">
-                  <h4>手搖飲:</h4>
-                  <el-checkbox v-model="preferences.foodTypePreferences.milkTea">奶茶</el-checkbox>
-                  <el-checkbox v-model="preferences.foodTypePreferences.fruitTea">果茶</el-checkbox>
-                  <el-checkbox v-model="preferences.foodTypePreferences.coffee">咖啡</el-checkbox>
-                </div>
-              </div>
-            </el-form-item>
-          </div>
-          
-          <!-- 運動偏好 -->
-          <div class="section">
-            <h3 class="section-title">運動偏好</h3>
-            <el-form-item label="喜好的運動類型">
-              <div class="checkbox-group">
-                <el-checkbox v-model="preferences.exercisePreferences.running">跑步</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.swimming">游泳</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.cycling">騎自行車</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.walking">健走</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.basketball">籃球</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.weightlifting">重訓</el-checkbox>
-                <el-checkbox v-model="preferences.exercisePreferences.yoga">瑜伽</el-checkbox>
+              <div class="form-hint">選擇您喜愛的食物類型，幫助我們提供更好的推薦</div>
+              <div class="button-group">
+                <el-button
+                  v-for="type in foodTypes"
+                  :key="type.name"
+                  :type="preferences.foodTypePreferences[type.name] ? 'primary' : 'info'"
+                  :plain="!preferences.foodTypePreferences[type.name]"
+                  @click="preferences.foodTypePreferences[type.name] = !preferences.foodTypePreferences[type.name]"
+                  style="margin: 4px"
+                >
+                  <i class="el-icon-ice-cream" style="margin-right:4px;color:#67c23a"></i>{{ type.name }}
+                </el-button>
               </div>
             </el-form-item>
           </div>
           
           <!-- 餐廳偏好 -->
-          <div class="section">
-            <h3 class="section-title">餐廳偏好</h3>
-            <el-form-item label="喜好的餐廳類型">
-              <div class="checkbox-group restaurant-types">
-                <el-checkbox v-for="restaurant in popularRestaurants" 
-                  :key="restaurant.id" 
-                  v-model="preferences.restaurantPreferences[restaurant.id]">
+          <div class="preference-card">
+            <div class="card-header">
+              <i class="el-icon-office-building"></i>
+              <h3>餐廳偏好</h3>
+            </div>
+            <el-form-item label="喜好的餐廳">
+              <div class="form-hint">選擇您喜愛的餐廳，以便我們提供合適的建議</div>
+              <div class="button-group restaurant-list">
+                <el-button
+                  v-for="restaurant in restaurants"
+                  :key="restaurant.id"
+                  :type="preferences.restaurantPreferences[restaurant.id] ? 'primary' : 'info'"
+                  :plain="!preferences.restaurantPreferences[restaurant.id]"
+                  @click="preferences.restaurantPreferences[restaurant.id] = !preferences.restaurantPreferences[restaurant.id]"
+                  style="margin: 4px"
+                >
+                  <i class="el-icon-office-building" style="margin-right:4px;color:#f08c00"></i>
                   {{ restaurant.name }}
-                </el-checkbox>
+                </el-button>
+              </div>
+            </el-form-item>
+          </div>
+          
+          <!-- 運動偏好 -->
+          <div class="preference-card">
+            <div class="card-header">
+              <i class="el-icon-basketball"></i>
+              <h3>運動偏好</h3>
+            </div>
+            <el-form-item label="喜好的運動類型">
+              <div class="form-hint">選擇您喜愛的運動，以便計算熱量消耗</div>
+              <div class="button-group">
+                <el-button
+                  v-for="item in exerciseItems"
+                  :key="item.name"
+                  :type="preferences.exercisePreferences[item.name] ? 'primary' : 'info'"
+                  :plain="!preferences.exercisePreferences[item.name]"
+                  @click="preferences.exercisePreferences[item.name] = !preferences.exercisePreferences[item.name]"
+                  style="margin: 4px"
+                >
+                  <i class="el-icon-basketball" style="margin-right:4px;color:#409eff"></i>{{ item.name }}
+                </el-button>
               </div>
             </el-form-item>
           </div>
           
           <div class="note">
-            <p>* 所有偏好設定均為選填，我們會根據您的偏好為您推薦內容</p>
+            <i class="el-icon-info-filled"></i>
+            <p>* 標示為必填欄位，其他偏好設定均為選填，我們會根據您的偏好為您推薦內容</p>
           </div>
           
           <div class="form-actions">
-            <el-button @click="goBack">返回</el-button>
+            <el-button @click="goBack" class="back-button">
+              <i class="el-icon-arrow-left"></i> 返回
+            </el-button>
             <el-button 
               type="primary" 
               :loading="isLoading" 
               @click="submitForm"
+              class="submit-button"
             >
+              <i class="el-icon-check" v-if="!isLoading"></i>
               {{ isLoading ? '提交中...' : '完成註冊' }}
             </el-button>
           </div>
@@ -140,6 +167,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { ElMessage } from 'element-plus'
 import { Loading } from '@element-plus/icons-vue'
+import axios from 'axios'
 
 export default {
   name: 'UserPreferences',
@@ -157,56 +185,62 @@ export default {
     const dataLoaded = ref(false)
     const registrationData = ref({})
     
-    // 熱門餐廳列表
-    const popularRestaurants = [
-      { id: 'mcdonalds', name: '麥當勞' },
-      { id: 'kfc', name: '肯德基' },
-      { id: 'burgerking', name: '漢堡王' },
-      { id: 'mosburger', name: '摩斯漢堡' },
-      { id: 'coco', name: 'COCO都可' },
-      { id: 'milkshop', name: '迷客夏' },
-      { id: 'starbucks', name: '星巴克' },
-      { id: '50lan', name: '50嵐' }
-    ]
+    // 偏好選項
+    const restaurants = ref([])
+    const foodTypes = ref([])
+    const exerciseItems = ref([])
     
     // 偏好設置
     const preferences = reactive({
-      storePreferences: {
-        fastFood: true,
-        beverageShop: true
-      },
-      foodTypePreferences: {
-        burger: false,
-        friedChicken: false,
-        fries: false,
-        sandwich: false,
-        milkTea: false,
-        fruitTea: false,
-        coffee: false
-      },
-      exercisePreferences: {
-        running: false,
-        swimming: false,
-        cycling: false,
-        walking: false,
-        basketball: false,
-        weightlifting: false,
-        yoga: false
-      },
-      restaurantPreferences: {
-        mcdonalds: false,
-        kfc: false,
-        burgerking: false,
-        mosburger: false,
-        coco: false,
-        milkshop: false,
-        starbucks: false,
-        '50lan': false
-      }
+      storePreferences: {},
+      foodTypePreferences: {}, // key: name
+      exercisePreferences: {}, // key: name
+      restaurantPreferences: {} // key: id
     })
+
+    // loading 狀態
+    const isLoading = ref(false)
+
+    // 從後端取得偏好選項
+    const fetchData = async () => {
+      try {
+        console.log('即將請求 API: /api/restaurants')
+        const restaurantsRes = await axios.get('/api/restaurants')
+        console.log('API 回傳餐廳資料:', restaurantsRes.data)
+        restaurants.value = restaurantsRes.data
+        // 初始化餐廳偏好
+        restaurants.value.forEach(r => {
+          preferences.restaurantPreferences[r.id] = false
+        })
+
+        console.log('即將請求 API: /api/food-types')
+        const foodTypesRes = await axios.get('/api/food-types')
+        console.log('API 回傳食物類型資料:', foodTypesRes.data)
+        foodTypes.value = foodTypesRes.data
+        // 初始化食物類型偏好（用 name）
+        foodTypes.value.forEach(f => {
+          preferences.foodTypePreferences[f.name] = false
+        })
+
+        console.log('即將請求 API: /api/exercise-items')
+        const exerciseItemsRes = await axios.get('/api/exercise-items')
+        console.log('API 回傳運動類型資料:', exerciseItemsRes.data)
+        exerciseItems.value = exerciseItemsRes.data
+        // 初始化運動偏好（用 name）
+        exerciseItems.value.forEach(e => {
+          preferences.exercisePreferences[e.name] = false
+        })
+
+        dataLoaded.value = true
+      } catch (err) {
+        console.error('載入偏好選項失敗:', err)
+        dataLoaded.value = false
+        ElMessage.error('載入偏好選項失敗，請稍後再試')
+      }
+    }
     
     // 初始化數據
-    onMounted(() => {
+    onMounted(async () => {
       try {
         // 檢查是否有註冊數據
         const storedData = sessionStorage.getItem('registrationData')
@@ -215,13 +249,8 @@ export default {
           router.push('/register')
           return
         }
-        
-        // 解析並儲存數據
         registrationData.value = JSON.parse(storedData)
-        console.log('成功載入註冊數據:', registrationData.value)
-        
-        // 標記數據已載入
-        dataLoaded.value = true
+        await fetchData()
       } catch (error) {
         console.error('載入註冊數據失敗:', error)
         ElMessage.error('載入數據失敗，請重新填寫基本資訊')
@@ -231,139 +260,85 @@ export default {
     
     // 提交表單
     const submitForm = async () => {
+      if (isLoading.value) return
+      isLoading.value = true
       try {
         // 驗證必填欄位
         if (budget.value === null || budget.value === '' || budget.value === 0) {
           ElMessage.warning('請填寫每餐預算')
+          isLoading.value = false
           return
         }
-        
         if (calorieLimit.value === null || calorieLimit.value === '' || calorieLimit.value === 0) {
           ElMessage.warning('請填寫每週熱量限制')
+          isLoading.value = false
           return
         }
-        
-        // 收集食物偏好
-        const foodPreferencesList = []
+        // 收集偏好
+        const Food_PreferencesList = []
         for (const [key, value] of Object.entries(preferences.foodTypePreferences)) {
-          if (value) foodPreferencesList.push(key)
+          if (value) Food_PreferencesList.push(key)
         }
-        
-        // 收集運動偏好
         const exercisePreferencesList = []
         for (const [key, value] of Object.entries(preferences.exercisePreferences)) {
           if (value) exercisePreferencesList.push(key)
         }
-        
-        // 收集餐廳偏好
         const restaurantPreferencesList = []
         for (const [key, value] of Object.entries(preferences.restaurantPreferences)) {
-          if (value) restaurantPreferencesList.push(key)
+          if (value) restaurantPreferencesList.push(Number(key))
         }
-        
-        // 準備最終註冊數據
-        const completeData = {
-          ...registrationData.value,
+        // Debug log
+        console.log('foodTypePreferences', preferences.foodTypePreferences)
+        console.log('exercisePreferences', preferences.exercisePreferences)
+        // 1. 註冊（只送 user 基本資料）
+        const userPayload = {
+          name: registrationData.value.name,
+          email: registrationData.value.email,
+          password: registrationData.value.password,
+          weight: registrationData.value.weight,
           budget: budget.value,
-          calorieLimit: calorieLimit.value,
-          foodPreference: foodPreferencesList.join(','),
-          exercisePreference: exercisePreferencesList.join(','),
-          restaurantPreference: restaurantPreferencesList.join(',')
+          weekcalorielimit: calorieLimit.value
         }
-        
-        console.log('準備提交註冊數據:', completeData)
-        
-        // 提交註冊
-        await authStore.register(completeData)
-        
+        let userId = null
+        try {
+          const signupRes = await axios.post('/api/auth/signup', userPayload)
+          userId = signupRes.data.user_id
+          if (!userId) {
+            ElMessage.error('註冊失敗，未取得 user_id，請稍後再試')
+            isLoading.value = false
+            return
+          }
+        } catch (error) {
+          if (error.response && error.response.status === 409) {
+            ElMessage.warning('這個電子郵件已經註冊過，請直接登入')
+            isLoading.value = false
+            return
+          }
+          ElMessage.error('註冊失敗，請稍後再試')
+          isLoading.value = false
+          return
+        }
+        // 2. 送偏好（只要註冊成功且 user_id 存在才送）
+        try {
+          await axios.post('/api/user/food-preferences', { user_id: userId, food_types: Food_PreferencesList })
+          await axios.post('/api/user/exercise-preferences', { user_id: userId, exercise_names: exercisePreferencesList })
+          await axios.post('/api/user/restaurant-preferences', { user_id: userId, restaurant_ids: restaurantPreferencesList })
+        } catch (error) {
+          ElMessage.error('偏好設定失敗，請稍後再試')
+          isLoading.value = false
+          return
+        }
         // 清除臨時數據
         sessionStorage.removeItem('registrationData')
-        
         // 顯示成功訊息
         ElMessage.success('註冊成功！')
-        
-        // 等待一小段時間，確保狀態更新
         setTimeout(() => {
-          // 檢查 token 是否已存儲
-          if (localStorage.getItem('token')) {
-            console.log('檢測到 token，導航到儀表板')
-            // 導航到儀表板
-            router.push('/dashboard')
-          } else {
-            console.warn('未檢測到 token，導航到登入頁面')
-            // 導航到登入頁面
-            router.push('/login')
-          }
-        }, 1000)  // 等待 1 秒
+          isLoading.value = false
+          router.push('/dashboard')
+        }, 1000)
       } catch (error) {
-        console.error('註冊失敗:', error)
-        // 處理特定錯誤類型
-        if (error.response && error.response.status === 409) {
-          // 清除sessionStorage避免資料殘留
-          sessionStorage.removeItem('registrationData')
-          
-          localError.value = '這個電子郵件已經註冊過，請使用其他電子郵件或直接登入'
-          ElMessage({
-            message: '這個電子郵件已經註冊過，是否要直接登入?',
-            type: 'warning',
-            showClose: true,
-            duration: 0, // 不自動關閉
-            center: true,
-            customClass: 'email-exists-warning',
-            dangerouslyUseHTMLString: true,
-            message: `
-              <div style="text-align: center; padding: 10px;">
-                <h3 style="margin-bottom: 10px;">這個電子郵件已經註冊過</h3>
-                <p style="margin-bottom: 15px;">您可以嘗試使用此帳號直接登入，或返回使用其他電子郵件。</p>
-                <div style="display: flex; justify-content: center; gap: 10px;">
-                  <button id="go-to-login-btn" style="
-                    background-color: #f08c00; 
-                    color: white; 
-                    border: none; 
-                    padding: 8px 15px; 
-                    border-radius: 4px;
-                    cursor: pointer;
-                  ">前往登入</button>
-                  <button id="try-other-email-btn" style="
-                    background-color: #909399; 
-                    color: white; 
-                    border: none; 
-                    padding: 8px 15px; 
-                    border-radius: 4px;
-                    cursor: pointer;
-                  ">更換電子郵件</button>
-                </div>
-              </div>
-            `
-          })
-          
-          // 添加按鈕點擊事件監聽器
-          setTimeout(() => {
-            const loginBtn = document.getElementById('go-to-login-btn')
-            const tryOtherBtn = document.getElementById('try-other-email-btn')
-            
-            if (loginBtn) {
-              loginBtn.addEventListener('click', () => {
-                ElMessage.closeAll()
-                router.push('/login')
-              })
-            }
-            
-            if (tryOtherBtn) {
-              tryOtherBtn.addEventListener('click', () => {
-                ElMessage.closeAll()
-                router.push('/register')
-              })
-            }
-          }, 100)
-          
-        } else if (error.message && error.message.includes('timeout')) {
-          localError.value = '伺服器回應超時，請稍後再試'
-          ElMessage.error('伺服器回應超時，請稍後再試')
-        } else {
-          localError.value = '註冊失敗，請稍後再試'
-          ElMessage.error('註冊失敗，請稍後再試')
-        }
+        isLoading.value = false
+        ElMessage.error('註冊或偏好設定失敗，請稍後再試')
       }
     }
     
@@ -377,12 +352,17 @@ export default {
       budget,
       calorieLimit,
       preferences,
-      popularRestaurants,
+      restaurants,
+      foodTypes,
+      exerciseItems,
       dataLoaded,
       submitForm,
       goBack,
       preferencesForm,
-      isLoading: computed(() => authStore.isLoading),
+      isLoading: computed({
+        get: () => isLoading.value,
+        set: v => { isLoading.value = v }
+      }),
       authError: computed(() => localError.value || authStore.error)
     }
   }
@@ -395,18 +375,24 @@ export default {
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  padding: 40px 0;
-  background-color: #f5f7fa;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
 }
 
 .auth-container {
   width: 100%;
   max-width: 700px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: none;
 }
 
 .auth-header {
   text-align: center;
   margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f8f9fa;
 }
 
 .auth-header h1 {
@@ -414,27 +400,30 @@ export default {
   color: #f08c00;
   font-weight: 700;
   font-size: 2.4rem;
+  letter-spacing: -0.5px;
 }
 
 .auth-header p {
   color: #f08c00;
   font-weight: 600;
   font-size: 1.2rem;
+  opacity: 0.9;
 }
 
-.progress-bar {
+/* 新的步驟指示器樣式 */
+.progress-steps {
   display: flex;
   justify-content: space-between;
   margin: 30px 0;
   position: relative;
 }
 
-.progress-bar::before {
+.progress-steps::before {
   content: "";
   position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  top: 20px;
+  left: 10%;
+  right: 10%;
   height: 2px;
   background-color: #e0e0e0;
   z-index: 0;
@@ -442,107 +431,258 @@ export default {
 
 .step {
   position: relative;
-  width: 32%;
+  width: 33.33%;
   text-align: center;
-  padding: 10px;
-  background-color: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 20px;
-  font-weight: 500;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.step.completed {
-  background-color: #f0fcf0;
+.step-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-bottom: 8px;
+  transition: all 0.3s ease;
+}
+
+.step-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.step.completed .step-icon {
+  background-color: #67c23a;
   border-color: #67c23a;
+  color: white;
+}
+
+.step.completed .step-label {
   color: #67c23a;
 }
 
-.step.active {
-  background-color: #fff8e6;
+.step.active .step-icon {
+  background-color: #f08c00;
   border-color: #f08c00;
+  color: white;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(240, 140, 0, 0.25);
+}
+
+.step.active .step-label {
   color: #f08c00;
   font-weight: 600;
 }
 
-.section {
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #eee;
+/* 卡片式偏好區塊 */
+.preference-card {
+  margin-bottom: 24px;
+  padding: 20px;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
 }
 
-.section-title {
-  color: #606266;
-  font-size: 18px;
-  margin-bottom: 16px;
-  font-weight: 500;
+.preference-card:hover {
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
 }
 
-.checkbox-group {
+.card-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.checkbox-row {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.checkbox-row h4 {
+.card-header i {
+  font-size: 22px;
+  color: #f08c00;
+}
+
+.card-header h3 {
+  color: #303133;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
-  font-size: 14px;
-  color: #606266;
-  min-width: 70px;
 }
 
-.restaurant-types {
-  max-height: 150px;
-  overflow-y: auto;
+/* 改進表單元素 */
+.el-form-item {
+  margin-bottom: 24px;
 }
 
+.form-hint {
+  font-size: 13px;
+  color: #909399;
+  margin: 4px 0 10px;
+}
+
+.budget-input, .calorie-input {
+  width: 100%;
+  max-width: 300px;
+}
+
+/* 精美的複選框群組 */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.restaurant-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 精緻備註樣式 */
 .note {
   font-size: 14px;
   color: #909399;
   margin: 20px 0;
-  font-style: italic;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
 }
 
+.note i {
+  color: #f08c00;
+  font-size: 16px;
+  margin-top: 2px;
+}
+
+/* 按鈕樣式改進 */
 .form-actions {
   display: flex;
   justify-content: space-between;
   margin-top: 30px;
 }
 
+.back-button {
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: #f0f0f0;
+  transform: translateX(-2px);
+}
+
+.submit-button {
+  background: linear-gradient(135deg, #f08c00 0%, #ffb347 100%);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 10px 32px;
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(240, 140, 0, 0.25);
+  transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+  box-shadow: 0 6px 16px rgba(240, 140, 0, 0.35);
+  transform: translateY(-2px);
+}
+
+.submit-button i {
+  margin-right: 6px;
+}
+
+/* 載入狀態優化 */
 .loading-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 50px 0;
+  padding: 60px 0;
 }
 
 .loading-container .el-icon {
-  font-size: 48px;
+  font-size: 64px;
   color: #f08c00;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .loading-container p {
   color: #606266;
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 500;
 }
 
+/* 響應式調整 */
 @media (max-width: 600px) {
+  .preferences-page {
+    padding: 20px 10px;
+  }
+  
   .auth-container {
+    border-radius: 8px;
+  }
+  
+  .card-header h3 {
+    font-size: 18px;
+  }
+  
+  .preference-card {
     padding: 15px;
+    margin-bottom: 16px;
   }
   
-  .checkbox-group {
-    gap: 8px;
+  .button-group {
+    gap: 10px;
   }
   
-    .checkbox-row h4 {      min-width: 100%;      margin-bottom: 8px;    }  }</style>
+  .form-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .back-button, .submit-button {
+    width: 100%;
+  }
+  
+  .progress-steps::before {
+    left: 15%;
+    right: 15%;
+  }
+}
+
+/* 全域 CSS 樣式，影響所有 checkbox */
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #f08c00 !important;
+  border-color: #f08c00 !important;
+}
+
+:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: #f08c00 !important;
+}
+
+:deep(.el-checkbox__input.is-focus .el-checkbox__inner) {
+  border-color: #f08c00 !important;
+}
+</style>
