@@ -98,7 +98,7 @@ def get_food_records():
         return jsonify({"error": str(e)}), 500
 
 @food_bp.route('/record/<int:record_id>', methods=['DELETE'])
-def remove_food_record(record_id):
+def delete_food_record_route(record_id):
     """
     刪除食物記錄
     ---
@@ -113,7 +113,7 @@ def remove_food_record(record_id):
         if not user_id:
             return jsonify({"error": "Missing required parameter: user_id"}), 400
             
-        result = delete_food_record(user_id, record_id)
+        result = delete_food_record(int(user_id), record_id)
         return jsonify(result), 200
     except ValueError as e:
         return jsonify({"error": str(e)}), 400

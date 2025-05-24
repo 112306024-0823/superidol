@@ -422,7 +422,7 @@ export default {
         if (Array.isArray(data)) {
           data.forEach(record => {
             const recordData = {
-              id: record.record_id,
+              record_id: record.record_id,
               name: record.name,
               restaurant: record.restaurant,
               calories: record.calories,
