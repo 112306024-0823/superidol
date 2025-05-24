@@ -28,15 +28,12 @@ def create_app():
     log_level = os.getenv('LOG_LEVEL', 'DEBUG')
     logging.basicConfig(level=getattr(logging, log_level))
     
-    # 設置CORS，直接允許所有來源
-    CORS(app, supports_credentials=True)
-
-    # 添加應用啟動後處理函數打印CORS信息
+    # 設置CORS，允許前端開發伺服器以及同源請求
+    CORS(app, origins=["http://localhost:5173", "http://localhost:5174", "*"], supports_credentials=True)
+    
+    # 記錄每個請求的CORS信息
     @app.after_request
-    def add_cors_headers(response):
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    def log_cors_headers(response):
         logging.debug(f"CORS Headers: {dict(response.headers)}")
         return response
     
@@ -55,6 +52,6 @@ def create_app():
     # 記錄應用啟動信息
     logging.info(f"Flask應用已啟動，環境: {env}")
     logging.info(f"數據庫連接: {app.config.get('MYSQL_HOST')}:{app.config.get('MYSQL_PORT')}")
-    logging.info(f"CORS設置: 允許所有來源")
+    logging.info(f"CORS設置: 允許來源 http://localhost:5173, http://localhost:5174 及同源請求")
     
     return app      

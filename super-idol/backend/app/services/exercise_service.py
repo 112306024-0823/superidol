@@ -31,17 +31,18 @@ def log_exercise(user_id: int, exercise_data: Dict[str, Any]) -> Dict[str, Any]:
             user = cursor.fetchone()
             if not user or user['Weight'] is None:
                 return {"error": "找不到使用者或體重未設定"}
-            weight = user['Weight']
+            weight = float(user['Weight'])
 
             # 查詢 MET
             cursor.execute("SELECT MET FROM ExerciseItem WHERE Exercise_Name = %s", (exercise_name,))
             item = cursor.fetchone()
             if not item:
                 return {"error": f"找不到運動名稱: {exercise_name}"}
-            met = item['MET']
+            met = float(item['MET'])
 
-            # 計算消耗熱量
-            calories_burned = met * 3.5 * weight / 200 * float(duration)
+            # 計算消耗熱量 - 確保所有數值都是 float 類型
+            duration_float = float(duration)
+            calories_burned = met * 3.5 * weight / 200 * duration_float
 
             # 寫入紀錄
             cursor.execute(
@@ -90,7 +91,7 @@ def get_exercise_records(user_id: int, start_date: Optional[str] = None, end_dat
             user = cursor.fetchone()
             if not user or user['Weight'] is None:
                 return []
-            weight = user['Weight']
+            weight = float(user['Weight'])
 
             # 查詢紀錄
             sql = "SELECT RecordID, Exercise_Name, Duration, Date FROM Exercise_Records WHERE UserID = %s"
@@ -110,7 +111,7 @@ def get_exercise_records(user_id: int, start_date: Optional[str] = None, end_dat
             if exercise_names:
                 format_strings = ','.join(['%s'] * len(exercise_names))
                 cursor.execute(f"SELECT Exercise_Name, MET FROM ExerciseItem WHERE Exercise_Name IN ({format_strings})", tuple(exercise_names))
-                met_map = {row['Exercise_Name']: row['MET'] for row in cursor.fetchall()}
+                met_map = {row['Exercise_Name']: float(row['MET']) for row in cursor.fetchall()}
             else:
                 met_map = {}
 
@@ -124,29 +125,151 @@ def get_exercise_records(user_id: int, start_date: Optional[str] = None, end_dat
     finally:
         conn.close()
 
-def get_exercise_preferences(user_id):
+def get_exercise_preferences(user_id: int) -> List[str]:
     """
-    Get user's exercise preferences.
-    
+    查詢使用者的運動偏好。
     Args:
-        user_id (int): User ID
-        
+        user_id (int): 使用者ID
     Returns:
-        list: User's preferred exercises
+        list: 運動偏好名稱列表
     """
-    # TODO: Implement preferences retrieval
-    return []
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT Exercise_Name FROM Exercise_Preference WHERE UserID = %s", (user_id,))
+            prefs = [row['Exercise_Name'] for row in cursor.fetchall()]
+        return prefs
+    except Exception as e:
+        return []
+    finally:
+        conn.close()
 
-def set_exercise_preferences(user_id, preferences):
+def set_exercise_preferences(user_id: int, preferences: List[str]) -> Dict[str, Any]:
     """
-    Set user's exercise preferences.
-    
+    設定使用者的運動偏好（會先清空再新增）。
     Args:
-        user_id (int): User ID
-        preferences (list): Exercise preferences
-        
+        user_id (int): 使用者ID
+        preferences (list): 運動名稱列表
     Returns:
-        dict: Result of the operation
+        dict: 結果訊息
     """
-    # TODO: Implement setting preferences
-    return {} 
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # 先刪除舊有偏好
+            cursor.execute("DELETE FROM Exercise_Preference WHERE UserID = %s", (user_id,))
+            # 新增新偏好
+            for exercise_name in preferences:
+                cursor.execute("SELECT 1 FROM ExerciseItem WHERE Exercise_Name = %s", (exercise_name,))
+                if cursor.fetchone():
+                    cursor.execute(
+                        "INSERT INTO Exercise_Preference (UserID, Exercise_Name) VALUES (%s, %s)",
+                        (user_id, exercise_name)
+                    )
+            conn.commit()
+        return {"message": "運動偏好已更新"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+def delete_exercise_record(user_id: int, record_id: int) -> Dict[str, Any]:
+    """
+    刪除一筆運動紀錄。
+    Args:
+        user_id (int): 使用者ID
+        record_id (int): 運動紀錄ID
+    Returns:
+        dict: 結果訊息
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM Exercise_Records WHERE UserID = %s AND RecordID = %s",
+                (user_id, record_id)
+            )
+            conn.commit()
+        return {"message": "運動紀錄已刪除"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+def update_exercise_record(user_id: int, record_id: int, update_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    更新一筆運動紀錄（可更新運動名稱、時長、日期）。
+    Args:
+        user_id (int): 使用者ID
+        record_id (int): 運動紀錄ID
+        update_data (dict): 欲更新欄位
+    Returns:
+        dict: 結果訊息
+    """
+    allowed_fields = {'exercise_name', 'duration', 'date'}
+    fields = []
+    params = []
+    for key in allowed_fields:
+        if key in update_data:
+            if key == 'exercise_name':
+                fields.append('Exercise_Name = %s')
+            elif key == 'duration':
+                fields.append('Duration = %s')
+            elif key == 'date':
+                fields.append('Date = %s')
+            params.append(update_data[key])
+    if not fields:
+        return {"error": "沒有可更新的欄位"}
+    params.extend([user_id, record_id])
+    sql = f"UPDATE Exercise_Records SET {', '.join(fields)} WHERE UserID = %s AND RecordID = %s"
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute(sql, tuple(params))
+            conn.commit()
+        return {"message": "運動紀錄已更新"}
+    except Exception as e:
+        conn.rollback()
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+def get_all_exercise_items() -> List[Dict[str, Any]]:
+    """
+    獲取所有可用的運動項目及其MET值。
+    
+    Returns:
+        list: 運動項目列表，每項包含名稱和MET值
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cursor:
+            # 首先檢查表是否存在
+            cursor.execute("SHOW TABLES LIKE 'ExerciseItem'")
+            if not cursor.fetchone():
+                print("錯誤: ExerciseItem 表不存在")
+                return []
+                
+            # 檢查表中是否有數據
+            cursor.execute("SELECT COUNT(*) as count FROM ExerciseItem")
+            count = cursor.fetchone()['count']
+            if count == 0:
+                print("警告: ExerciseItem 表中沒有數據")
+                return []
+            
+            # 移除 Status 條件，獲取所有運動項目
+            cursor.execute("SELECT Exercise_Name, MET FROM ExerciseItem ORDER BY Exercise_Name")
+            items = cursor.fetchall()
+            
+            # 記錄查詢結果數量
+            print(f"成功從 ExerciseItem 表獲取 {len(items)} 筆運動項目")
+            return items
+    except Exception as e:
+        print(f"獲取運動項目錯誤: {str(e)}")
+        import traceback
+        traceback.print_exc()  # 列印完整錯誤堆疊
+        return []
+    finally:
+        conn.close() 

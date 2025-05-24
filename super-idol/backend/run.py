@@ -268,6 +268,40 @@ from app import create_app
 # 獲取應用實例
 app = create_app()
 
+# 添加詳細的API請求日誌記錄
+@app.before_request
+def log_request_info():
+    import logging
+    from flask import request
+    
+    if '/api/' in request.path:
+        logging.info(f"API請求: {request.method} {request.path}")
+        if request.args:
+            logging.info(f"查詢參數: {dict(request.args)}")
+        if request.content_type and 'application/json' in request.content_type:
+            try:
+                logging.info(f"請求體(JSON): {request.get_json()}")
+            except:
+                logging.warning(f"無法解析JSON請求體")
+        logging.info(f"請求頭: {dict(request.headers)}")
+
+@app.after_request
+def log_response_info(response):
+    import logging
+    from flask import request
+    
+    if '/api/' in request.path:
+        logging.info(f"API響應: {response.status_code} {response.status}")
+        logging.info(f"響應頭: {dict(response.headers)}")
+        if response.content_type and 'application/json' in response.content_type:
+            try:
+                # 嘗試讀取並記錄響應內容，但不修改原始響應
+                response_data = response.get_data()
+                logging.info(f"響應體(JSON): {response_data.decode('utf-8')}")
+            except:
+                logging.warning("無法解析JSON響應體")
+    return response
+
 # 設置靜態文件目錄
 static_folder = find_static_directory()
 if static_folder:

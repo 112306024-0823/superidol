@@ -8,6 +8,12 @@
       
       <el-alert v-if="authError" type="error" :title="authError" show-icon />
       
+      <div class="progress-bar">
+        <div class="step active">基本資訊</div>
+        <div class="step">偏好設定</div>
+        <div class="step">完成</div>
+      </div>
+      
       <el-form 
         @submit.native.prevent="handleRegister" 
         class="auth-form" 
@@ -24,40 +30,16 @@
           />
         </el-form-item>
         
-        
-        <el-form-item label="預算" prop="budget">
-  <el-input-number 
-    v-model="form.budget" 
-    :min="0" 
-    placeholder="請輸入預算" 
-    controls-position="right"
-    style="width: 100%;"
-  />
-</el-form-item>
-
-<el-form-item label="每週熱量限制" prop="calorieLimit">
-  <el-input-number 
-    v-model="form.calorieLimit" 
-    :min="0" 
-    placeholder="請輸入每週熱量限制" 
-    controls-position="right"
-    style="width: 100%;"
-  />
-</el-form-item>
-
-<el-form-item label="飲食偏好" prop="foodPreference">
-  <el-input 
-    v-model="form.foodPreference" 
-    placeholder="請輸入飲食偏好"
-  />
-</el-form-item>
-
-<el-form-item label="運動偏好" prop="exercisePreference">
-  <el-input 
-    v-model="form.exercisePreference" 
-    placeholder="請輸入運動偏好"
-  />
-</el-form-item>
+        <el-form-item label="體重 (kg) *" prop="weight">
+          <el-input-number 
+            v-model="form.weight" 
+            :min="30" 
+            :max="200"
+            placeholder="請輸入您的體重（必填）" 
+            controls-position="right"
+            style="width: 100%;"
+          />
+        </el-form-item>
 
         <el-form-item label="電子郵件" prop="email">
           <el-input 
@@ -104,7 +86,7 @@
             @click="submitForm" 
             class="register-btn"
           >
-            {{ isLoading ? '註冊中...' : '註冊' }}
+            下一步
           </el-button>
         </el-form-item>
       </el-form>
@@ -127,6 +109,8 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../store/auth'
 import { User, Message, Lock } from '@element-plus/icons-vue'
 import { isValidEmail, validatePassword, isValidName, doPasswordsMatch } from '../../utils/validation'
+import api from '../../services/api'
+import { ElMessage } from 'element-plus'
 
 export default {
   name: 'RegisterPage',
@@ -144,147 +128,113 @@ export default {
     })
     
     const form = reactive({
-      name: '',
-      email: '',
-      password: '',
+      name: '',           // 必填
+      email: '',          // 必填
+      password: '',       // 必填
       confirmPassword: '',
-      budget: null,
-  calorieLimit: null,
-  foodPreference: '',
-  exercisePreference: ''
+      weight: null,       // 必填（用於計算健康目標）
     })
     
     const localError = ref('')
     
-  const rules = {
-  name: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          // 尚未提交且空白，不顯示錯誤
-          callback()
-          return
+    const rules = {
+      name: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              // 尚未提交且空白，不顯示錯誤
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入姓名'))
+            } else if (!isValidName(value)) {
+              callback(new Error('姓名至少需要2個字符'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
         }
-        if (!value) {
-          callback(new Error('請輸入姓名'))
-        } else if (!isValidName(value)) {
-          callback(new Error('姓名至少需要2個字符'))
-        } else {
-          callback()
+      ],
+      weight: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && value == null) {
+              callback()
+              return
+            }
+            if (value == null || value === '') {
+              callback(new Error('請輸入體重'))
+            } else if (value < 20 || value > 200) {
+              callback(new Error('體重需在合理範圍內'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
         }
-      },
-      trigger: ['blur', 'change']
+      ],
+      email: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入電子郵件'))
+            } else if (!isValidEmail(value)) {
+              callback(new Error('請輸入有效的電子郵件地址'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      password: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請輸入密碼'))
+            } else if (value.length < 8) {
+              callback(new Error('密碼長度必須至少為8個字符'))
+            } else {
+              const result = validatePassword(value)
+              if (!result.isValid) {
+                callback(new Error(result.message))
+              } else {
+                callback()
+              }
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ],
+      confirmPassword: [
+        {
+          validator: (rule, value, callback) => {
+            if (!isSubmitAttempted.value && !value) {
+              callback()
+              return
+            }
+            if (!value) {
+              callback(new Error('請再次輸入密碼'))
+            } else if (!doPasswordsMatch(form.password, value)) {
+              callback(new Error('兩次輸入的密碼不一致'))
+            } else {
+              callback()
+            }
+          },
+          trigger: ['blur', 'change']
+        }
+      ]
     }
-  ],
-  budget: [
-  {
-    validator: (rule, value, callback) => {
-      if (value == null || value === '') {
-        callback()
-      } else if (value < 0) {
-        callback(new Error('預算不能是負數'))
-      } else {
-        callback()
-      }
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-calorieLimit: [
-  {
-    validator: (rule, value, callback) => {
-      if (value == null || value === '') {
-        callback()
-      } else if (value < 0) {
-        callback(new Error('每週熱量限制不能是負數'))
-      } else {
-        callback()
-      }
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-foodPreference: [
-  {
-    validator: (rule, value, callback) => {
-      callback() // 選填，不做嚴格限制
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-exercisePreference: [
-  {
-    validator: (rule, value, callback) => {
-      callback() // 選填，不做嚴格限制
-    },
-    trigger: ['blur', 'change']
-  }
-],
-
-  email: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請輸入電子郵件'))
-        } else if (!isValidEmail(value)) {
-          callback(new Error('請輸入有效的電子郵件地址'))
-        } else {
-          callback()
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ],
-  password: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請輸入密碼'))
-        } else if (value.length < 8) {
-          callback(new Error('密碼長度必須至少為8個字符'))
-        } else {
-          const result = validatePassword(value)
-          if (!result.isValid) {
-            callback(new Error(result.message))
-          } else {
-            callback()
-          }
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ],
-  confirmPassword: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isSubmitAttempted.value && !value) {
-          callback()
-          return
-        }
-        if (!value) {
-          callback(new Error('請再次輸入密碼'))
-        } else if (!doPasswordsMatch(form.password, value)) {
-          callback(new Error('兩次輸入的密碼不一致'))
-        } else {
-          callback()
-        }
-      },
-      trigger: ['blur', 'change']
-    }
-  ]
-}
-
     
     // 檢查密碼強度
     const checkPasswordStrength = () => {
@@ -308,21 +258,20 @@ exercisePreference: [
       }
     }
     
-  const submitForm = () => {
-  isSubmitAttempted.value = true
-  if (!registerForm.value) {
-    handleRegister()
-    return
-  }
-  registerForm.value.validate(valid => {
-    if (valid) {
-      handleRegister()
-    } else {
-      console.log('表單驗證失敗，顯示錯誤訊息')
+    const submitForm = () => {
+      isSubmitAttempted.value = true
+      if (!registerForm.value) {
+        handleRegister()
+        return
+      }
+      registerForm.value.validate(valid => {
+        if (valid) {
+          handleRegister()
+        } else {
+          console.log('表單驗證失敗，顯示錯誤訊息')
+        }
+      })
     }
-  })
-}
-
     
     const handleRegister = async () => {
       if (form.password !== form.confirmPassword) {
@@ -330,24 +279,34 @@ exercisePreference: [
         return
       }
       
+      // 驗證所有必填欄位
+      if (!form.name || !form.email || !form.password) {
+        localError.value = '請填寫基本資料（姓名、電子郵件、密碼）'
+        return
+      }
+      
+      // 特別檢查體重
+      if (form.weight === null || form.weight === '') {
+        localError.value = '請填寫您的體重'
+        if (registerForm.value) registerForm.value.validateField('weight')
+        return
+      }
+      
       localError.value = ''
       
-      try {
-        await authStore.register({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          budget: form.budget,
-  calorieLimit: form.calorieLimit,
-  foodPreference: form.foodPreference,
-  exercisePreference: form.exercisePreference
-        })
-        
-        // 註冊成功，導航到儀表板
-        router.push('/dashboard')
-      } catch (error) {
-        console.error('註冊失敗:', error)
+      // 創建包含必要註冊資訊的物件
+      const registrationData = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        weight: form.weight
       }
+      
+      // 將註冊資料保存到會話存儲
+      sessionStorage.setItem('registrationData', JSON.stringify(registrationData))
+      
+      // 簡單導向偏好設置頁面，不通過路由參數傳遞數據
+      router.push('/preferences')
     }
     
     const authError = computed(() => {
@@ -403,10 +362,53 @@ exercisePreference: [
 
 .auth-container {
   width: 100%;
-  max-width: 440px;
+  max-width: 700px;
   padding: 24px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
   border-radius: 8px;
+}
+
+.progress-bar {
+  display: flex;
+  justify-content: space-between;
+  margin: 30px 0;
+  position: relative;
+}
+
+.progress-bar::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #e0e0e0;
+  z-index: 0;
+}
+
+.step {
+  position: relative;
+  width: 32%;
+  text-align: center;
+  padding: 10px;
+  background-color: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  font-weight: 500;
+  z-index: 1;
+}
+
+.step.completed {
+  background-color: #f0fcf0;
+  border-color: #67c23a;
+  color: #67c23a;
+}
+
+.step.active {
+  background-color: #fff8e6;
+  border-color: #f08c00;
+  color: #f08c00;
+  font-weight: 600;
 }
 
 .auth-header {
@@ -438,13 +440,10 @@ exercisePreference: [
   margin-bottom: 16px;
 }
 
-
-
 /* 輸入框寬度全滿 */
 .auth-form >>> .el-form-item__content {
   width: 100%;
 }
-
 
 /* 讓表單標籤跟輸入框垂直排列 */
 .auth-form >>> .el-form-item {
@@ -516,6 +515,11 @@ exercisePreference: [
 }
 
 .password-strength.error {
+  color: #ff4d4f;
+}
+
+/* 必填標記顏色 */
+.auth-form >>> .el-form-item__label em {
   color: #ff4d4f;
 }
 </style>

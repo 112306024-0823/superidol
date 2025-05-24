@@ -163,6 +163,103 @@
             </div>
           </div>
           
+          <div class="form-section">
+            <h2 class="section-title">食物偏好設置</h2>
+            
+            <div class="form-group">
+              <label class="form-label">偏好食物類型</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.foodPreferences.chinese" />
+                  <span>中式料理</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.foodPreferences.western" />
+                  <span>西式料理</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.foodPreferences.japanese" />
+                  <span>日式料理</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.foodPreferences.korean" />
+                  <span>韓式料理</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.foodPreferences.vegetarian" />
+                  <span>素食料理</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">飲食限制</label>
+              <div class="checkbox-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.dietaryRestrictions.glutenFree" />
+                  <span>無麩質</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.dietaryRestrictions.lactoseFree" />
+                  <span>無乳糖</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.dietaryRestrictions.nutFree" />
+                  <span>無堅果</span>
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="profile.dietaryRestrictions.seafoodAllergy" />
+                  <span>海鮮過敏</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="spicyLevel" class="form-label">辣度喜好</label>
+              <div class="spicy-level-selector">
+                <div class="spicy-level-options">
+                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 0 }">
+                    <input type="radio" v-model="profile.spicyLevel" :value="0" />
+                    <span>不吃辣</span>
+                  </label>
+                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 1 }">
+                    <input type="radio" v-model="profile.spicyLevel" :value="1" />
+                    <span>微辣</span>
+                  </label>
+                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 2 }">
+                    <input type="radio" v-model="profile.spicyLevel" :value="2" />
+                    <span>中辣</span>
+                  </label>
+                  <label class="spicy-option" :class="{ active: profile.spicyLevel === 3 }">
+                    <input type="radio" v-model="profile.spicyLevel" :value="3" />
+                    <span>重辣</span>
+                  </label>
+                </div>
+                <div class="spicy-indicator">
+                  <i class="fas fa-pepper-hot" v-for="n in profile.spicyLevel + 1" :key="n"></i>
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="priceRange" class="form-label">價格預算</label>
+              <div class="price-range">
+                <span>低價</span>
+                <input 
+                  type="range" 
+                  v-model.number="profile.priceRange" 
+                  min="1" 
+                  max="5" 
+                  class="range-slider" 
+                />
+                <span>高價</span>
+              </div>
+              <div class="price-indicator">
+                <i class="fas fa-dollar-sign" v-for="n in profile.priceRange" :key="n"></i>
+              </div>
+            </div>
+          </div>
+          
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">儲存變更</button>
             <button type="button" class="btn btn-secondary" @click="resetForm">取消</button>
@@ -194,7 +291,22 @@ export default {
       calorieGoal: 2000,
       proteinGoal: 150,
       carbsGoal: 200,
-      fatGoal: 65
+      fatGoal: 65,
+      foodPreferences: {
+        chinese: true,
+        western: true,
+        japanese: false,
+        korean: false,
+        vegetarian: false
+      },
+      dietaryRestrictions: {
+        glutenFree: false,
+        lactoseFree: false,
+        nutFree: false,
+        seafoodAllergy: false
+      },
+      spicyLevel: 1,
+      priceRange: 3
     })
     
     // 載入個人資料
@@ -211,6 +323,10 @@ export default {
     const saveProfile = async () => {
       // 實際實作中應該呼叫API更新資料
       console.log('儲存資料:', profile.value)
+      
+      // 存储用户资料到 localStorage，以便在用户偏好和食物推荐中使用
+      localStorage.setItem('userProfile', JSON.stringify(profile.value))
+      
       // TODO: 呼叫API儲存資料
       alert('資料已儲存！')
     }
@@ -338,7 +454,89 @@ export default {
   border-color: #d97706;
 }
 
+/* 新增樣式 */
+.checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
 
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background-color: #f5f5f5;
+  transition: all 0.2s;
+}
+
+.checkbox-label:hover {
+  background-color: #efefef;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.spicy-level-selector {
+  margin-top: 8px;
+}
+
+.spicy-level-options {
+  display: flex;
+  gap: 10px;
+}
+
+.spicy-option {
+  flex: 1;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.spicy-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.spicy-option.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.spicy-indicator {
+  margin-top: 8px;
+  color: #ff4d4f;
+}
+
+.price-range {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.range-slider {
+  flex: 1;
+}
+
+.price-indicator {
+  margin-top: 8px;
+  color: #389e0d;
+}
 
 @media (max-width: 768px) {
   .form-row {
