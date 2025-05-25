@@ -1,572 +1,771 @@
 <template>
   <div class="weekly-report-page">
     <div class="container">
-      <h1 class="page-title">每週報告</h1>
+      <h1 class="page-title">
+        <!-- <el-icon><DataAnalysis /></el-icon> --> 健康報告
+      </h1>
 
-
-      <!-- 週次選擇器 -->
-      <div class="week-selector">
-        <button class="btn btn-icon" @click="changeWeek(-1)">
-          <i class="icon-left-arrow"></i>
+      <!-- 新增：報告類型選擇器 -->
+      <div class="report-type-selector">
+        <button
+          :class="['btn', currentReportType === 'daily' ? 'btn-primary' : 'btn-secondary']"
+          @click="changeReportType('daily')">
+          <!-- <el-icon><Calendar /></el-icon>  -->日報告
         </button>
-        <h2 class="current-week">{{ weekRangeText }}</h2>
-        <button class="btn btn-icon" @click="changeWeek(1)">
-          <i class="icon-right-arrow"></i>
+        <button
+          :class="['btn', currentReportType === 'weekly' ? 'btn-primary' : 'btn-secondary']"
+          @click="changeReportType('weekly')">
+          <!-- <el-icon><Collection /></el-icon>  -->週報告
+        </button>
+        <!-- TODO: 月報告按鈕 -->
+      </div>
+
+      <!-- 日期/週次選擇器 -->
+      <div class="time-selector">
+        <button class="btn btn-icon" @click="changePeriod(-1)">
+          <!-- <el-icon><ArrowLeftBold /></el-icon> -->
+          <i class="icon-left-arrow">←</i> <!-- 暫用文字替代圖標 -->
+        </button>
+        <h2 class="current-period-text">{{ reportDateText }}</h2>
+        <button class="btn btn-icon" @click="changePeriod(1)">
+          <!-- <el-icon><ArrowRightBold /></el-icon> -->
+          <i class="icon-right-arrow">→</i> <!-- 暫用文字替代圖標 -->
         </button>
       </div>
 
+      <!-- 日曆選擇器 -->
+      <div class="calendar-selector-container" v-if="currentReportType === 'weekly' || currentReportType === 'daily'">
+         <Datepicker
+            v-model="selectedDateForPicker"
+            :inline="true"
+            :week-start="0"
+            @update:model-value="onDatePicked"
+            :enable-time-picker="false"
+            placeholder="選擇日期"
+            />
+      </div>
 
-      <!-- 每週摘要 -->
-      <div class="weekly-summary">
+
+      <!-- 摘要 (period-summary) -->
+      <div class="period-summary" v-if="reportData">
         <div class="summary-row">
           <div class="summary-card">
-            <div class="summary-title">卡路里攝取</div>
-            <div class="summary-value">{{ weeklySummary.totalExpense }}</div>
+            <div class="summary-title">
+              <!-- <el-icon><Food /></el-icon>  -->卡路里攝取
+            </div>
+            <div class="summary-value">{{ periodSummary.totalCaloriesIntake }} <span class="unit">大卡</span></div>
+            <div class="summary-description" v-if="currentReportType === 'weekly'">
+              平均每日: {{ periodSummary.avgDailyCaloriesIntake }} <span class="unit-small">大卡</span>
+            </div>
             <div class="summary-description">
-              目標: {{ userGoals.dailyCalories }} 卡路里/天
+              目標: {{ userGoals.daily_calories }} <span class="unit-small">大卡/天</span>
             </div>
           </div>
 
-
           <div class="summary-card">
-            <div class="summary-title">卡路里消耗</div>
-            <div class="summary-value">{{ weeklySummary.completionRate }}%</div>
+            <div class="summary-title">
+              <!-- <el-icon><MostlyCloudy /></el-icon>  -->卡路里消耗
+            </div>
+            <div class="summary-value">{{ periodSummary.totalCaloriesBurned }} <span class="unit">大卡</span></div>
+             <div class="summary-description" v-if="currentReportType === 'weekly'">
+              平均每日: {{ periodSummary.avgDailyCaloriesBurned }} <span class="unit-small">大卡</span>
+            </div>
             <div class="summary-description">
-              記錄 {{ weeklySummary.daysLogged }}/7 天
+              {{ periodSummary.exerciseCount }} 次運動
             </div>
           </div>
 
-
           <div class="summary-card">
-            <div class="summary-title">運動時間</div>
-            <div class="summary-value">{{ weeklySummary.totalCaloriesBurned }}</div>
-            <div class="summary-description">
-              {{ weeklySummary.exerciseCount }} 次運動記錄
+            <div class="summary-title">
+             <!-- <el-icon><Timer /></el-icon>  -->運動時長
+            </div>
+            <div class="summary-value">{{ periodSummary.total_exercise_duration_minutes }} <span class="unit">分鐘</span></div>
+            <div class="summary-description" v-if="currentReportType === 'weekly'">
+              平均每日: {{ periodSummary.avgDailyExerciseDurationMinutes }} <span class="unit-small">分鐘</span>
             </div>
           </div>
 
-
           <div class="summary-card">
-            <div class="summary-title">總支出</div>
-            <div class="summary-value">{{ weeklySummary.totalExpense }}</div>
+            <div class="summary-title">
+              <!-- <el-icon><Money /></el-icon>  -->總支出
+            </div>
+            <div class="summary-value">{{ periodSummary.totalFoodExpense }} <span class="unit">元</span></div>
             <div class="summary-description">
-              目標: {{ userGoals.dailyCalories }} 卡路里/天
+              記錄 {{ periodSummary.foodDaysLogged }}/{{ reportData.report_info.num_days_in_period }} 天
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else-if="isLoading" class="loading-state">
+        <!-- <el-icon class="is-loading"><Loading /></el-icon> -->
+        載入報告中...
+      </div>
+
+
+      <!-- 圖表區段 -->
+      <div class="report-section-row" v-if="reportData">
+        <div class="report-section full-width-section">
+          <h2 class="section-title">
+            <!-- <el-icon><TrendCharts /></el-icon> --> 卡路里趨勢
+          </h2>
+          <div class="chart-placeholder chart">
+            <div class="chart-container">
+              <canvas ref="calorieChartEl" id="calorieChart"></canvas>
             </div>
           </div>
         </div>
       </div>
 
-
-      <div class="report-section-row">
+      <div class="report-sections-row-grid" v-if="reportData">
         <div class="report-section">
-          <h2 class="section-title">日期選取 & 卡路里趨勢</h2>
-
-
-          <div class="date-calorie-row">
-            <div class="calendar-container chart">
-              <Datepicker v-model="selectedDate" :inline="true" :week-start="0" @update:model-value="onDateSelected" />
+          <h2 class="section-title">
+            <!-- <el-icon><Present /></el-icon>  -->運動紀錄
+          </h2>
+          <div class="chart-placeholder">
+            <div class="chart-container">
+              <canvas ref="exerciseTrendChartEl" id="exerciseTrendChart"></canvas>
             </div>
+          </div>
+        </div>
 
-
-            <div class="chart-placeholder chart">
-              <div class="chart-container">
-                <canvas id="calorieChart"></canvas>
-              </div>
+        <div class="report-section">
+          <h2 class="section-title">
+            <!-- <el-icon><Tickets /></el-icon>  -->支出紀錄
+          </h2>
+          <div class="chart-placeholder">
+            <div class="chart-container">
+              <canvas ref="expenseChartEl" id="expenseChart"></canvas>
             </div>
           </div>
         </div>
       </div>
 
-
-
-
-      <!-- 把運動紀錄跟支出紀錄包在一個父容器 -->
-      <div class="report-sections-row">
-        <div class="report-section">
-          <h2 class="section-title">運動紀錄</h2>
-          <div class="exercise-summary">
-            <div class="chart-placeholder">
-              <div class="chart-container">
-                <canvas id="exerciseTrendChart"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-
-        <div class="report-section">
-          <h2 class="section-title">支出紀錄</h2>
-          <div class="chart-container">
-            <div class="chart-placeholder">
-              <canvas id="expenseChart"></canvas>
-            </div>
-          </div>
-        </div>
-      </div>
-
-
-
-
-
-
-
-
-
-
-      <div class="report-section">
-        <h2 class="section-title">建議與提示</h2>
+      <div class="report-section full-width-section" v-if="reportData">
+        <h2 class="section-title">
+          <!-- <el-icon><Opportunity /></el-icon>  -->建議與提示
+        </h2>
         <div class="suggestion-card">
-          <p>根據您這週的飲食和運動記錄，我們有以下建議：</p>
-          <ul class="suggestion-list">
-            <li>嘗試增加蛋白質攝取，您的蛋白質攝取略低於建議值。</li>
-            <li>每週至少進行3次30分鐘以上的有氧運動。</li>
-            <li>建議減少加工食品的攝取，增加新鮮蔬果比例。</li>
+          <p v-if="reportData.suggestions && reportData.suggestions.length > 0">
+            根據您這{{ currentReportType === 'daily' ? '日' : '週' }}的飲食和運動記錄，我們有以下建議：
+          </p>
+          <ul class="suggestion-list" v-if="reportData.suggestions && reportData.suggestions.length > 0">
+            <li v-for="(suggestion, index) in reportData.suggestions" :key="index">
+             <!-- <el-icon><Star /></el-icon>  -->{{ suggestion }}
+            </li>
           </ul>
+           <p v-else>
+            <!-- <el-icon><InfoFilled /></el-icon>  -->暫無特別建議，請繼續保持記錄！
+           </p>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-
 <script>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue' // Removed watchEffect as it's not used
 import { Chart } from 'chart.js/auto'
 import Datepicker from '@vuepic/vue-datepicker'
 import '@vuepic/vue-datepicker/dist/main.css'
+import { ElMessage } from 'element-plus'
+// 準備引入圖示，如果已安裝 Element Plus Icons
+// import { DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, Present, Tickets, Opportunity, Star, InfoFilled } from '@element-plus/icons-vue'
 
 
 export default {
-  name: 'WeeklyReport',
+  name: 'SummaryReportPage',
   components: {
-    Datepicker
+    Datepicker,
+    // 如果使用 Element Plus Icons，在此註冊
+    // ElIcon, DataAnalysis, Calendar, Collection, ArrowLeftBold, ArrowRightBold, Food, MostlyCloudy, Timer, Money, Loading, TrendCharts, Present, Tickets, Opportunity, Star, InfoFilled
   },
   setup() {
-    const selectedWeek = ref({ start: new Date(), end: new Date() })
-    const selectedDate = ref(new Date())
+    const currentReportType = ref('weekly')
+    const selectedDateForPicker = ref(new Date())
+    const targetDate = ref(new Date())
+    const reportData = ref(null)
+    const isLoading = ref(false)
 
+    const calorieChartEl = ref(null);
+    const exerciseTrendChartEl = ref(null);
+    const expenseChartEl = ref(null);
 
-    const initializeCurrentWeek = () => {
-      const now = new Date()
-      const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1
-      const start = new Date(now)
-      start.setDate(now.getDate() - dayOfWeek)
-      const end = new Date(start)
-      end.setDate(start.getDate() + 6)
-      selectedWeek.value = { start, end }
+    const initializeTargetDate = () => {
+      targetDate.value = new Date()
+      selectedDateForPicker.value = new Date(targetDate.value)
     }
 
+    const fetchSummaryReport = async () => {
+      isLoading.value = true
+      reportData.value = null
+      destroyCharts();
+      try {
+        const userId = localStorage.getItem('userId')
+        if (!userId) {
+          ElMessage.warning('請先登入以查看報告')
+          isLoading.value = false
+          return
+        }
 
+        let startDateStr = ''
+        if (currentReportType.value === 'daily') {
+          startDateStr = targetDate.value.toISOString().split('T')[0]
+        } else if (currentReportType.value === 'weekly') {
+          startDateStr = targetDate.value.toISOString().split('T')[0]
+        }
 
+        const apiUrl = `/api/reports/summary?user_id=${userId}&report_type=${currentReportType.value}&start_date=${startDateStr}`
+        const response = await fetch(apiUrl)
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          throw new Error(`API 請求失敗: ${response.status} - ${errorData.error || response.statusText}`)
+        }
+        const data = await response.json()
+        reportData.value = data
+      } catch (error) {
+        console.error('載入摘要報告數據失敗:', error)
+        ElMessage.error(error.message || '載入摘要報告數據失敗，請稍後再試')
+        reportData.value = null;
+      } finally {
+        isLoading.value = false
+      }
+    }
 
-    const userGoals = ref({
-      dailyCalories: 2000,
-      protein: 150,
-      carbs: 200,
-      fat: 65
+    const userGoals = computed(() => {
+      return reportData.value?.user_goals || {
+        daily_calories: 2000,
+        daily_budget: 0,
+      }
     })
 
+    const reportDateText = computed(() => {
+      if (!reportData.value || !reportData.value.report_info) {
+        if (currentReportType.value === 'daily') {
+            return targetDate.value.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+        } else if (currentReportType.value === 'weekly') {
+            const start = new Date(targetDate.value);
+            const dayOfWeek = start.getDay() === 0 ? 6 : start.getDay() -1;
+            start.setDate(start.getDate() - dayOfWeek);
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            const startText = start.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
+            const endText = end.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' });
+            return `${startText} - ${endText}`;
+        }
+        return '選擇日期';
+      }
+      const { actual_start_date, actual_end_date } = reportData.value.report_info
+      const startDate = new Date(actual_start_date + 'T00:00:00')
+      const endDate = new Date(actual_end_date + 'T00:00:00')
 
-    const weekRangeText = computed(() => {
-      const startText = selectedWeek.value.start.toLocaleDateString('zh-TW', {
-        month: 'long',
-        day: 'numeric'
-      })
-      const endText = selectedWeek.value.end.toLocaleDateString('zh-TW', {
-        month: 'long',
-        day: 'numeric'
-      })
-      return `${startText} - ${endText}`
+      if (currentReportType.value === 'daily') {
+        return startDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+      } else if (currentReportType.value === 'weekly') {
+        const startText = startDate.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' })
+        const endText = endDate.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric' })
+        return `${startText} - ${endText}`
+      }
+      return '日期範圍'
     })
 
+    const periodSummary = computed(() => {
+      const summary = reportData.value?.period_summary
+      const reportInfo = reportData.value?.report_info
+      const numDays = reportInfo?.num_days_in_period > 0 ? reportInfo.num_days_in_period : 1; // Avoid division by zero
 
-    const weeklySummary = ref({
-      totalCaloriesBurned: 1200,
-      exerciseCount: 5,
-      completionRate: 85,
-      totalExpense: 750,
-      daysLogged: 6,
-      avgProtein: 120,
-      avgCarbs: 180,
-      avgFat: 60
+      return {
+        totalCaloriesIntake: summary?.total_calories_intake || 0,
+        totalCaloriesBurned: summary?.total_calories_burned || 0,
+        foodDaysLogged: summary?.food_days_logged || 0,
+        totalFoodExpense: summary?.total_food_expense || 0,
+        exerciseCount: summary?.exercise_count || 0,
+        total_exercise_duration_minutes: summary?.total_exercise_duration_minutes || 0,
+        avgDailyCaloriesIntake: Math.round((summary?.total_calories_intake || 0) / numDays),
+        avgDailyCaloriesBurned: Math.round((summary?.total_calories_burned || 0) / numDays),
+        avgDailyExerciseDurationMinutes: Math.round((summary?.total_exercise_duration_minutes || 0) / numDays),
+      }
     })
 
-
-    const changeWeek = (direction) => {
-      const newStart = new Date(selectedWeek.value.start)
-      const newEnd = new Date(selectedWeek.value.end)
-      newStart.setDate(newStart.getDate() + direction * 7)
-      newEnd.setDate(newEnd.getDate() + direction * 7)
-      selectedWeek.value = { start: newStart, end: newEnd }
-      loadWeeklyData()
+    const changeReportType = (newType) => {
+      currentReportType.value = newType
+      fetchSummaryReport()
     }
 
-
-    const onDateSelected = (date) => {
-      const selected = new Date(date)
-      const dayOfWeek = selected.getDay()
-      const startOfWeek = new Date(selected)
-      startOfWeek.setDate(selected.getDate() - dayOfWeek)
-      const endOfWeek = new Date(startOfWeek)
-      endOfWeek.setDate(startOfWeek.getDate() + 6)
-      selectedWeek.value = { start: startOfWeek, end: endOfWeek }
-      selectedDate.value = selected
-      loadWeeklyData()
+    const changePeriod = (direction) => {
+      const newDate = new Date(targetDate.value)
+      if (currentReportType.value === 'daily') {
+        newDate.setDate(newDate.getDate() + direction)
+      } else if (currentReportType.value === 'weekly') {
+        newDate.setDate(newDate.getDate() + direction * 7)
+      }
+      targetDate.value = newDate
+      selectedDateForPicker.value = new Date(newDate)
+      fetchSummaryReport()
     }
 
-
-    const loadWeeklyData = () => {
-      console.log('加載週次', weekRangeText.value, '的報告數據')
+    const onDatePicked = (date) => {
+      if (!date) return;
+      targetDate.value = new Date(date)
+      selectedDateForPicker.value = new Date(date)
+      fetchSummaryReport()
     }
 
+    let calorieChartInstance = null
+    let exerciseTrendChartInstance = null
+    let expenseChartInstance = null
+
+    const destroyCharts = () => {
+        if (calorieChartInstance) calorieChartInstance.destroy(); calorieChartInstance = null;
+        if (exerciseTrendChartInstance) exerciseTrendChartInstance.destroy(); exerciseTrendChartInstance = null;
+        if (expenseChartInstance) expenseChartInstance.destroy(); expenseChartInstance = null;
+    }
+
+    const initOrUpdateCharts = (dailyTrends) => {
+      if (!dailyTrends || dailyTrends.length === 0) {
+        destroyCharts();
+        return;
+      }
+
+      const labels = dailyTrends.map(t => {
+        const dateObj = new Date(t.date + 'T00:00:00');
+        return dateObj.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', weekday: 'short' });
+      });
+
+      const chartOptionsBase = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false }},
+        interaction: { mode: 'index', intersect: false },
+      };
+
+      // Calorie Chart
+      const intakeData = dailyTrends.map(t => t.calories_intake);
+      const burnedData = dailyTrends.map(t => t.calories_burned);
+      const netData = dailyTrends.map(t => t.calories_intake - t.calories_burned);
+
+      if (calorieChartEl.value) { // Ensure canvas element is available
+        if (calorieChartInstance) {
+          calorieChartInstance.data.labels = labels;
+          calorieChartInstance.data.datasets[0].data = intakeData;
+          calorieChartInstance.data.datasets[1].data = burnedData;
+          calorieChartInstance.data.datasets[2].data = netData;
+          calorieChartInstance.update();
+        } else {
+          calorieChartInstance = new Chart(calorieChartEl.value, {
+            type: 'bar',
+            data: { labels, datasets: [
+                { type: 'bar', label: '卡路里攝取', data: intakeData, backgroundColor: 'rgba(66, 165, 245, 0.7)', borderColor: '#42a5f5', order: 2 },
+                { type: 'bar', label: '卡路里消耗', data: burnedData, backgroundColor: 'rgba(102, 187, 106, 0.7)', borderColor: '#66bb6a', order: 3 },
+                { type: 'line', label: '淨卡路里', data: netData, borderColor: '#ff7043', backgroundColor: 'rgba(255, 112, 67, 0.1)', borderWidth: 2, tension: 0.3, yAxisID: 'y', order: 1, pointBackgroundColor: '#ff7043' }
+            ]},
+            options: { ...chartOptionsBase, scales: { y: { beginAtZero: true, title: { display: true, text: '卡路里' }}, x: {title: {display: dailyTrends.length > 1, text: '日期' }} }}
+          });
+        }
+      }
+
+
+      // Exercise Trend Chart
+      const exerciseDurationData = dailyTrends.map(t => t.exercise_duration_minutes);
+      if (exerciseTrendChartEl.value) { // Ensure canvas element is available
+        if (exerciseTrendChartInstance) {
+          exerciseTrendChartInstance.data.labels = labels;
+          exerciseTrendChartInstance.data.datasets[0].data = exerciseDurationData;
+          exerciseTrendChartInstance.update();
+        } else {
+           exerciseTrendChartInstance = new Chart(exerciseTrendChartEl.value, {
+              type: 'line',
+              data: { labels, datasets: [{ label: '運動時間 (分鐘)', data: exerciseDurationData, borderColor: '#42a5f5', backgroundColor: 'rgba(66, 165, 245, 0.2)', fill: true, tension: 0.3, pointBackgroundColor: '#42a5f5' }]},
+              options: { ...chartOptionsBase, scales: { y: { beginAtZero: true, title: { display: true, text: '時間 (分鐘)' }}, x: { title: { display: dailyTrends.length > 1, text: '日期' }} }}
+          });
+        }
+      }
+
+
+      // Expense Chart
+      const expenseData = dailyTrends.map(t => t.food_expense);
+      if (expenseChartEl.value) { // Ensure canvas element is available
+        if (expenseChartInstance) {
+          expenseChartInstance.data.labels = labels;
+          expenseChartInstance.data.datasets[0].data = expenseData;
+          expenseChartInstance.update();
+        } else {
+          expenseChartInstance = new Chart(expenseChartEl.value, {
+              type: 'bar',
+              data: { labels, datasets: [{ label: '每日支出 (元)', data: expenseData, backgroundColor: 'rgba(255, 202, 40, 0.7)', borderColor: '#ffca28', borderRadius: 4 }]},
+              options: { ...chartOptionsBase, scales: { y: { beginAtZero: true, title: { display: true, text: '元' }}, x: { title: { display: dailyTrends.length > 1, text: '日期' }} }}
+          });
+        }
+      }
+    }
 
     onMounted(() => {
-      initializeCurrentWeek()
-      loadWeeklyData()
-
-
-      new Chart(document.getElementById('calorieChart'), {
-        type: 'bar',
-        data: {
-          labels: ['週日', '週一', '週二', '週三', '週四', '週五', '週六'],
-          datasets: [
-            {
-              type: 'bar',
-              label: '卡路里攝取',
-              data: [1800, 2000, 1900, 1850, 1750, 2100, 1950],
-              backgroundColor: '#42a5f5',
-              order: 2
-            },
-            {
-              type: 'bar',
-              label: '卡路里消耗',
-              data: [500, 700, 600, 650, 400, 800, 500],
-              backgroundColor: '#66bb6a',
-              order: 3
-            },
-            {
-              type: 'line',
-              label: '淨卡路里',
-              data: [1300, 1300, 1300, 1200, 1350, 1300, 1450],
-              order: 3,
-              borderColor: '#ff7043',
-              backgroundColor: '#ff7043',
-              borderWidth: 2,
-              tension: 0.3,
-              yAxisID: 'y',
-              order: 1 // 折線在最上層
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-          },
-          interaction: { mode: 'index', intersect: false },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: '卡路里' }
-            }
-          }
-        }
-
-
-      })
-      new Chart(document.getElementById('exerciseTrendChart'), {
-        type: 'line',
-        data: {
-          labels: ['週日', '週一', '週二', '週三', '週四', '週五', '週六'],
-          datasets: [
-            {
-              label: '運動時間 (分鐘)',
-              data: [30, 45, 60, 20, 50, 0, 40], // 可依資料更新
-              borderColor: '#42a5f5',
-              backgroundColor: 'rgba(66, 165, 245, 0.2)',
-              fill: true,
-              tension: 0.3,
-              pointBackgroundColor: '#42a5f5'
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: {
-                display: true,
-                text: '時間 (分鐘)'
-              }
-            },
-            x: {
-              title: {
-                display: true,
-                text: '星期'
-              }
-            }
-          }
-        }
-      })
-
-
-      new Chart(document.getElementById('expenseChart'), {
-        type: 'bar',
-        data: {
-          labels: ['週日', '週一', '週二', '週三', '週四', '週五', '週六'],
-          datasets: [
-            {
-              label: '每日支出 (元)',
-              data: [120, 90, 150, 100, 80, 200, 130], // 可依實際資料更新
-              backgroundColor: '#ffca28',
-              borderRadius: 4
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { position: 'top' },
-            tooltip: { mode: 'index', intersect: false }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: '元' }
-            },
-            x: {
-              title: { display: true, text: '星期' }
-            }
-          }
-        }
-      })
-
-
-
-
+      initializeTargetDate()
+      fetchSummaryReport()
     })
+
+    watch(() => reportData.value, async (newData, oldData) => {
+      if (newData && newData.daily_trends) {
+         await nextTick();
+         initOrUpdateCharts(newData.daily_trends)
+      } else if (!newData && oldData) {
+        destroyCharts()
+      }
+    }, { deep: true })
 
 
     return {
-      selectedWeek,
-      selectedDate,
-      weekRangeText,
+      currentReportType,
+      selectedDateForPicker,
+      targetDate,
+      reportData,
+      isLoading,
       userGoals,
-      weeklySummary,
-      changeWeek,
-      onDateSelected
+      reportDateText,
+      periodSummary,
+      changeReportType,
+      changePeriod,
+      onDatePicked,
+      calorieChartEl,
+      exerciseTrendChartEl,
+      expenseChartEl,
     }
   }
 }
 </script>
 
-
 <style scoped>
-/* 你的原始樣式保持不變 */
-.weekly-report-page {
-  padding: 20px 0;
+/* ----- 全局變量 (理想情況下在 main.css 或 App.vue style) ----- */
+:root {
+  --primary-color: #409EFF; /* Element Plus 主色藍 */
+  --primary-color-dark: #337ecc;
+  --success-color: #67C23A;
+  --warning-color: #E6A23C;
+  --danger-color: #F56C6C;
+  --info-color: #909399;
+  --text-primary: #303133;
+  --text-regular: #606266;
+  --text-secondary: #909399;
+  --border-color-light: #e4e7ed;
+  --bg-color: #f5f7fa;
 }
 
+/* ----- 整體與間距 ----- */
+.weekly-report-page .container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+}
 
 .page-title {
-  margin-bottom: 24px;
-  font-size: 28px;
-  color: var(--text-color);
-}
-
-
-.week-selector {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 30px;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
+}
+.page-title .el-icon {
+  margin-right: 10px;
+  font-size: 2.5rem;
 }
 
-
-.current-week {
-  margin: 0 16px;
-  font-size: 20px;
-  color: var(--text-color);
+.report-type-selector,
+.time-selector,
+.calendar-selector-container,
+.period-summary,
+.report-section-row,
+.report-sections-row-grid, /* Changed class name */
+.report-section {
+  margin-bottom: 30px;
 }
 
-
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 20px;
+/* ----- 按鈕 ----- */
+.report-type-selector {
+  display: flex;
+  justify-content: center;
+  gap: 15px; /* 按鈕間距 */
+  margin-bottom: 25px;
+}
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px; /* 圖標與文字間距 */
+}
+.btn .el-icon {
+  font-size: 1.1em;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+.btn-primary:hover {
+  background-color: var(--primary-color-dark);
+  border-color: var(--primary-color-dark);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.btn-secondary {
+  background-color: #f0f2f5;
+  color: var(--text-regular);
+  border-color: #dcdfe6;
+}
+.btn-secondary:hover {
+  background-color: #e4e7ed;
+  border-color: #c8c9cc;
   color: var(--primary-color);
 }
 
+.time-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.current-period-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 20px;
+  min-width: 200px; /* 給定最小寬度避免跳動 */
+  text-align: center;
+}
+.btn-icon {
+  background: transparent;
+  border: none;
+  padding: 8px;
+  color: var(--primary-color);
+  cursor: pointer;
+}
+.btn-icon .el-icon, .btn-icon i {
+  font-size: 1.8rem; /* 調整圖標大小 */
+}
+.btn-icon:hover {
+  color: var(--primary-color-dark);
+}
 
-.weekly-summary {
-  margin-bottom: 32px;
+/* ----- 日曆選擇器 ----- */
+.calendar-selector-container {
+  display: flex;
+  justify-content: center;
+  max-width: 360px; /* 限制日曆寬度 */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ----- 摘要卡片 ----- */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); /* 響應式卡片 */
+  gap: 20px;
+}
+.summary-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
+  border: 1px solid var(--border-color-light);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px -6px rgba(0,0,0,.1), 0 12px 32px 0 rgba(0,0,0,.07), 0 16px 52px 18px rgba(0,0,0,.04);
+}
+.summary-title {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+}
+.summary-title .el-icon {
+  margin-right: 6px;
+  color: var(--text-secondary);
+}
+.summary-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+  display: flex;
+  align-items: baseline;
+}
+.summary-value .unit {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 6px;
+}
+.summary-description {
+  font-size: 0.85rem;
+  color: var(--text-regular);
+}
+.summary-description .unit-small {
+   font-size: 0.8rem;
+   color: var(--text-secondary);
 }
 
 
-.summary-row {
+/* ----- 區塊標題 ----- */
+.report-section {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 6px 16px -8px rgba(0,0,0,.08), 0 9px 28px 0 rgba(0,0,0,.05), 0 12px 48px 16px rgba(0,0,0,.03);
+  border: 1px solid var(--border-color-light);
+}
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color-light);
+  display: flex;
+  align-items: center;
+}
+.section-title .el-icon {
+  margin-right: 8px;
+  color: var(--primary-color);
+}
+.full-width-section { /* 用於單獨佔一行的區塊 */
+  grid-column: 1 / -1; /* 如果父容器是 grid */
+}
+
+/* ----- 圖表區塊網格佈局 ----- */
+.report-sections-row-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: 1fr 1fr; /* 預設兩欄 */
   gap: 20px;
 }
 
-
-.summary-card {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-
-.summary-title {
-  font-size: 16px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-
-.summary-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: var(--primary-color);
-  margin-bottom: 8px;
-}
-
-
-.summary-description {
-  font-size: 14px;
-  color: #888;
-}
-
-
-.report-section {
-  background-color: var(--card-bg);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-
-.section-title {
-  margin-top: 0;
-  margin-bottom: 16px;
-  font-size: 20px;
-  color: var(--text-color);
-}
-
-
-.chart-row {
-  display: flex;
-  justify-content: start;
-  gap: 16px;
-}
-
-
-.chart {
-  flex: 1;
-}
-
-
+/* ----- 圖表容器 ----- */
 .chart-container {
-  height: 300px;
+  height: 350px;
+  position: relative; /* For Chart.js responsiveness */
+}
+.chart-placeholder { /* 包裹 canvas 的 div */
   width: 100%;
-}
-
-
-.chart-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.02);
-  border-radius: 8px;
-  color: #888;
 }
 
 
-.date-calorie-row {
+/* ----- 建議區塊 ----- */
+.suggestion-card {
+   background-color: var(--bg-color);
+   border-left: 4px solid var(--primary-color);
+   padding: 20px;
+   border-radius: 8px;
+   margin-top: 10px; /* 與標題間距 */
+}
+.suggestion-card p {
+  color: var(--text-regular);
+  line-height: 1.7;
+  margin-bottom: 12px;
   display: flex;
-  gap: 24px;
   align-items: center;
 }
-
-
-.date-calorie-row>.chart {
-  flex: 1;
-  min-width: 0;
-  /* 防止溢出 */
+.suggestion-card p .el-icon {
+  margin-right: 8px;
+  color: var(--info-color);
+  font-size: 1.2em;
 }
-
-
-.calendar-container {
-  max-width: 350px;
-  /* 限制日曆寬度，可自行調整 */
-  flex-shrink: 0;
-}
-
-
-.chart-placeholder {
-  height: 300px;
-}
-
-
-
-
-.report-sections-row {
-  display: flex;
-  gap: 24px;
-  /* 兩個區塊間距 */
-  margin-bottom: 24px;
-}
-
-
-.report-sections-row>.report-section {
-  flex: 1;
-  /* 平均分寬 */
-  min-width: 0;
-  /* 避免子元素溢出 */
-}
-
-
-/* 手機下改成直排 */
-@media (max-width: 768px) {
-  .report-sections-row {
-    flex-direction: column;
-  }
-}
-
-
-
-
 .suggestion-list {
-  padding-left: 20px;
-  margin-top: 12px;
+  list-style: none;
+  padding-left: 0;
 }
-
-
 .suggestion-list li {
-  margin-bottom: 8px;
-  color: #555;
+  color: var(--text-regular);
+  line-height: 1.8;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+.suggestion-list li .el-icon {
+  margin-right: 8px;
+  color: var(--warning-color); /* 或 var(--success-color) */
+  font-size: 1.1em;
 }
 
+
+/* ----- Loading 狀態 ----- */
+.loading-state {
+  display: flex;
+  flex-direction: column; /* 讓圖標和文字垂直排列 */
+  justify-content: center;
+  align-items: center;
+  padding: 60px 20px;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+.loading-state .el-icon {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: var(--primary-color);
+}
+/* Element Plus is-loading class already handles animation */
+
+
+/* ----- 響應式調整 ----- */
+@media (max-width: 992px) {
+  .report-sections-row-grid {
+    grid-template-columns: 1fr; /* 中螢幕變單欄 */
+  }
+}
 
 @media (max-width: 768px) {
-  .summary-row {
-    grid-template-columns: 1fr;
+  .page-title {
+    font-size: 1.8rem;
   }
-
-
+  .summary-row {
+    grid-template-columns: 1fr; /* 小螢幕摘要卡片堆疊 */
+  }
+  .current-period-text {
+    font-size: 1.2rem;
+    min-width: 150px;
+  }
+  .btn {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+  .section-title {
+    font-size: 1.3rem;
+  }
   .chart-container {
-    height: 250px;
+    height: 300px; /* 稍微降低圖表高度 */
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 15px;
+  }
+  .report-type-selector {
+    flex-direction: column; /* 更小螢幕時按鈕垂直排列 */
+    gap: 10px;
+  }
+  .time-selector {
+    flex-wrap: wrap; /* 允許換行 */
+  }
+  .current-period-text {
+     order: -1; /* 將日期文字提到最前 */
+     width: 100%;
+     margin-bottom: 10px;
+  }
+  .page-title .el-icon {
+    font-size: 2rem;
   }
 }
 </style>
