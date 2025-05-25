@@ -19,6 +19,7 @@
             v-model="selectedDateString" 
             class="date-picker" 
             :class="{ 'visible': showDatePicker }"
+            :max="todayString"
             @change="showDatePicker = false; loadFoodRecords()"
             @blur="showDatePicker = false"
           >
@@ -114,6 +115,7 @@
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">
                       <i class="el-icon-delete"></i>
                     </button>
+                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
                   </div>
                 </div>
               </div>
@@ -174,6 +176,7 @@
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">
                       <i class="el-icon-delete"></i>
                     </button>
+                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
                   </div>
                 </div>
               </div>
@@ -234,6 +237,7 @@
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">
                       <i class="el-icon-delete"></i>
                     </button>
+                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
                   </div>
                 </div>
               </div>
@@ -294,6 +298,7 @@
                     <button class="delete-btn" @click="deleteRecord(item.record_id)">
                       <i class="el-icon-delete"></i>
                     </button>
+                    <button class="edit-btn" @click="openEditRecord(item)"><i class="el-icon-edit"></i></button>
                   </div>
                 </div>
               </div>
@@ -314,6 +319,15 @@
         <div class="loading-spinner"></div>
         <p>載入中...</p>
       </div>
+
+      <FoodRecordModal
+        v-if="showEditModal"
+        :visible="showEditModal"
+        :editMode="true"
+        :record="editingRecord"
+        @update:visible="closeEditModal"
+        @saved="handleEditSaved"
+      />
     </div>
   </div>
 </template>
@@ -322,12 +336,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import FoodRecordModal from '@/components/food/FoodRecordModal.vue'
 // TODO: 導入相關 store 和工具函數
 // import { useFoodStore } from '../../store/food'
 // import { formatDate } from '../../utils/date'
 
 export default {
   name: 'FoodRecord',
+  components: { FoodRecordModal },
   setup() {
     // const foodStore = useFoodStore()
     const router = useRouter()
@@ -337,6 +353,13 @@ export default {
     const selectedDate = ref(new Date())
     const selectedDateString = ref('')
     const showDatePicker = ref(false)
+    const today = new Date()
+    const todayString = computed(() => {
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    })
 
     // 卡路里目標 (實際應從用戶設置獲取)
     const calorieGoal = ref(2000)
@@ -377,6 +400,10 @@ export default {
     const lunchItems = ref([])
     const dinnerItems = ref([])
     const snackItems = ref([])
+
+    // 編輯彈窗狀態
+    const showEditModal = ref(false)
+    const editingRecord = ref(null)
 
     // 監聽 selectedDate 的變化，更新 selectedDateString
     watch(selectedDate, (newDate) => {
@@ -422,14 +449,16 @@ export default {
         if (Array.isArray(data)) {
           data.forEach(record => {
             const recordData = {
-              id: record.record_id,
+              record_id: record.record_id,
               name: record.name,
               restaurant: record.restaurant,
               calories: record.calories,
               price: record.price,
               type: record.type,
               food_type: record.food_type || '未分類',
-              quantity: record.quantity
+              quantity: record.quantity,
+              mealtime: record.mealtime,
+              date: record.date
             }
             
             if (record.mealtime === '早餐') {
@@ -519,9 +548,33 @@ export default {
     const changeDate = (days) => {
       const newDate = new Date(selectedDate.value)
       newDate.setDate(newDate.getDate() + days)
+      // 限制不能超過今天
+      if (newDate > today) {
+        ElMessage.warning('只能記錄到今天，不能選擇未來日期')
+        return
+      }
       selectedDate.value = newDate
-
       // 加載所選日期的食物記錄
+      loadFoodRecords()
+    }
+
+    const openEditRecord = (record) => {
+      editingRecord.value = {
+        ...record,
+        mealtime: record.mealtime,
+        quantity: record.quantity,
+        date: record.date
+      }
+      showEditModal.value = true
+    }
+
+    const closeEditModal = () => {
+      showEditModal.value = false
+      editingRecord.value = null
+    }
+
+    const handleEditSaved = () => {
+      closeEditModal()
       loadFoodRecords()
     }
 
@@ -536,6 +589,7 @@ export default {
       selectedDateString,
       showDatePicker,
       formattedDate,
+      todayString,
       calorieGoal,
       dailySummary,
       calorieRemaining,
@@ -548,7 +602,12 @@ export default {
       addFood,
       deleteRecord,
       isLoading,
-      loadFoodRecords
+      loadFoodRecords,
+      showEditModal,
+      editingRecord,
+      openEditRecord,
+      closeEditModal,
+      handleEditSaved
     }
   }
 }
@@ -979,6 +1038,20 @@ export default {
   .food-item-details {
     grid-template-columns: 1fr;
   }
+}
+
+.edit-btn {
+  margin-right: 8px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.edit-btn:hover {
+  background: #bbdefb;
 }
 </style>
 

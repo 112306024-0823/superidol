@@ -10,7 +10,8 @@ from ..services.food_service import (
     delete_food_record, 
     get_user_favorites, 
     add_to_favorites, 
-    remove_from_favorites
+    remove_from_favorites,
+    update_food_record as update_food_record_service
 )
 from flask_cors import CORS
 
@@ -22,20 +23,24 @@ def get_foods():
     """
     Get all foods or search for foods based on filters
     """
-    filters = {
-        'name': request.args.get('name', ''),
-        'priceMin': request.args.get('priceMin', ''),
-        'priceMax': request.args.get('priceMax', ''),
-        'calMin': request.args.get('calMin', ''),
-        'calMax': request.args.get('calMax', ''),
-        'type': request.args.get('type', ''),
-        'restaurant': request.args.get('restaurant', '')
-    }
-
     try:
+        # 初始化空的過濾條件
+        filters = {
+            'name': request.args.get('name', ''),
+            'priceMin': request.args.get('priceMin', ''),
+            'priceMax': request.args.get('priceMax', ''),
+            'calMin': request.args.get('calMin', ''),
+            'calMax': request.args.get('calMax', ''),
+            'type': request.args.get('type', ''),
+            'restaurant': request.args.get('restaurant', '')
+        }
+
         results = search_food(filters)
+        if not results:
+            results = []  # 確保返回空列表而不是 None
         return jsonify(results), 200
     except Exception as e:
+        print(f"Error in get_foods: {str(e)}")  # 添加服務器端日誌
         return jsonify({'error': str(e)}), 500
 
 @food_bp.route('/record', methods=['POST'])
@@ -233,5 +238,39 @@ def calculate_exercise():
         }), 200
     except ValueError:
         return jsonify({"error": "Invalid calories value"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@food_bp.route('/record/<int:record_id>', methods=['PUT'])
+def update_food_record(record_id):
+    """
+    修改食物記錄
+    ---
+    路徑參數:
+      record_id: 食物記錄ID
+    請求參數:
+      user_id: 用戶ID (驗證權限)
+      mealtime: 餐點類型 (可選)
+      quantity: 數量 (可選)
+      date: 日期 (可選)
+    回應:
+      200: 修改成功
+    """
+    try:
+        data = request.json
+        user_id = data.get('user_id')
+        if not user_id:
+            return jsonify({"error": "Missing required field: user_id"}), 400
+        # 允許部分欄位更新
+        updates = {}
+        for field in ['mealtime', 'quantity', 'date']:
+            if field in data:
+                updates[field] = data[field]
+        if not updates:
+            return jsonify({"error": "No fields to update"}), 400
+        result = update_food_record_service(user_id, record_id, updates)
+        return jsonify(result), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except Exception as e:
         return jsonify({"error": str(e)}), 500 

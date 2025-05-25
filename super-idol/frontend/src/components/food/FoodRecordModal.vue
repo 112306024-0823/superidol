@@ -47,9 +47,13 @@
             <button class="quantity-btn" @click="quantity++">+</button>
           </div>
         </div>
+        <div class="date-selector">
+          <h4>選擇紀錄日期</h4>
+          <input type="date" v-model="selectedDateString" :max="todayString" class="date-input" />
+        </div>
         <div class="modal-actions">
           <button class="modal-btn cancel-btn" @click="close">取消</button>
-          <button class="modal-btn save-btn" @click="saveRecord">儲存</button>
+          <button class="modal-btn save-btn" @click="saveRecord">{{ editMode ? '更新' : '儲存' }}</button>
         </div>
       </div>
     </div>
@@ -63,16 +67,31 @@ import { ElMessage } from 'element-plus'
 const props = defineProps({
   visible: { type: Boolean, required: true },
   food: { type: Object, default: null },
+  editMode: { type: Boolean, default: false },
+  record: { type: Object, default: null },
 })
 const emit = defineEmits(['update:visible', 'saved'])
 
 const selectedMealType = ref('')
 const quantity = ref(1)
+const today = new Date()
+const year = today.getFullYear()
+const month = String(today.getMonth() + 1).padStart(2, '0')
+const day = String(today.getDate()).padStart(2, '0')
+const todayString = `${year}-${month}-${day}`
+const selectedDateString = ref(todayString)
 
 watch(() => props.visible, (val) => {
   if (val) {
-    selectedMealType.value = ''
-    quantity.value = 1
+    if (props.editMode && props.record) {
+      selectedMealType.value = props.record.mealtime || ''
+      quantity.value = props.record.quantity || 1
+      selectedDateString.value = props.record.date || todayString
+    } else {
+      selectedMealType.value = ''
+      quantity.value = 1
+      selectedDateString.value = todayString
+    }
   }
 })
 
@@ -85,36 +104,61 @@ const saveRecord = async () => {
     ElMessage.warning('請選擇餐點類型')
     return
   }
+  if (!selectedDateString.value) {
+    ElMessage.warning('請選擇紀錄日期')
+    return
+  }
   try {
     const userId = localStorage.getItem('userId')
     if (!userId) {
       ElMessage.warning('請先登入')
       return
     }
-    const today = new Date().toISOString().split('T')[0]
-    const food_id = props.food?.food_id ?? props.food?.id
-    const response = await fetch('http://localhost:5000/api/food/record', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        user_id: parseInt(userId),
-        food_id,
-        mealtime: selectedMealType.value,
-        quantity: quantity.value,
-        date: today
+    if (props.editMode && props.record) {
+      const response = await fetch(`http://localhost:5000/api/food/record/${props.record.record_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: parseInt(userId),
+          mealtime: selectedMealType.value,
+          quantity: quantity.value,
+          date: selectedDateString.value
+        })
       })
-    })
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(`API 請求失敗: ${response.status} ${response.statusText} - ${errorText}`)
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`API 請求失敗: ${response.status} ${response.statusText} - ${errorText}`)
+      }
+      ElMessage.success('已成功更新食物記錄')
+      emit('saved')
+      close()
+    } else {
+      const food_id = props.food?.food_id ?? props.food?.id
+      const response = await fetch('http://localhost:5000/api/food/record', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: parseInt(userId),
+          food_id,
+          mealtime: selectedMealType.value,
+          quantity: quantity.value,
+          date: selectedDateString.value
+        })
+      })
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(`API 請求失敗: ${response.status} ${response.statusText} - ${errorText}`)
+      }
+      ElMessage.success('已成功添加到食物記錄')
+      emit('saved')
+      close()
     }
-    ElMessage.success('已成功添加到食物記錄')
-    emit('saved')
-    close()
   } catch (error) {
-    ElMessage.error('添加食物記錄失敗，請稍後再試')
+    ElMessage.error(props.editMode ? '更新食物記錄失敗，請稍後再試' : '添加食物記錄失敗，請稍後再試')
   }
 }
 </script>
@@ -169,11 +213,13 @@ const saveRecord = async () => {
   padding: 20px;
 }
 .meal-type-selector,
-.quantity-selector {
+.quantity-selector,
+.date-selector {
   margin-bottom: 24px;
 }
 .meal-type-selector h4,
-.quantity-selector h4 {
+.quantity-selector h4,
+.date-selector h4 {
   margin: 0 0 12px;
   font-size: 16px;
   font-weight: 600;
@@ -240,6 +286,13 @@ const saveRecord = async () => {
   border: 1px solid #ddd;
   border-radius: 8px;
   font-size: 16px;
+}
+.date-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
 }
 .modal-actions {
   display: flex;

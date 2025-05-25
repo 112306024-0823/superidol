@@ -6,6 +6,7 @@ from ..extensions import db
 from ..schemas.food_item import FoodItemCreate, FoodItemUpdate
 from app.db import get_db_connection
 import logging
+import pymysql
 
 class FoodService:
     @staticmethod
@@ -46,75 +47,70 @@ def search_food(filters):
     搜尋符合條件的食物清單
     """
     conn = get_db_connection()
+    # 強制用 DictCursor
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
     try:
-        with conn.cursor() as cursor:
-            sql = """
-                SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, r.Name AS Restaurant
-                FROM Food f
-                LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
-                WHERE 1 = 1
-            """
-            params = []
+        # 基本查詢
+        sql = """
+            SELECT f.FoodID, f.Name, f.Calories, f.Price, f.Food_Type, f.Set_Type, r.Name AS Restaurant
+            FROM Food f
+            LEFT JOIN Restaurant r ON f.RestaurantID = r.RestaurantID
+            WHERE 1 = 1
+        """
+        params = []
 
-            if filters.get('priceMin'):
-                sql += " AND f.Price >= %s"
-                params.append(float(filters['priceMin']))
+        # 添加過濾條件
+        if filters.get('priceMin') and filters['priceMin'].strip():
+            sql += " AND f.Price >= %s"
+            params.append(float(filters['priceMin']))
 
-            if filters.get('priceMax'):
-                sql += " AND f.Price <= %s"
-                params.append(float(filters['priceMax']))
+        if filters.get('priceMax') and filters['priceMax'].strip():
+            sql += " AND f.Price <= %s"
+            params.append(float(filters['priceMax']))
 
-            if filters.get('calMin'):
-                sql += " AND f.Calories >= %s"
-                params.append(float(filters['calMin']))
+        if filters.get('calMin') and filters['calMin'].strip():
+            sql += " AND f.Calories >= %s"
+            params.append(float(filters['calMin']))
 
-            if filters.get('calMax'):
-                sql += " AND f.Calories <= %s"
-                params.append(float(filters['calMax']))
+        if filters.get('calMax') and filters['calMax'].strip():
+            sql += " AND f.Calories <= %s"
+            params.append(float(filters['calMax']))
 
-            if filters.get('name'):
-                sql += " AND f.Name LIKE %s"
-                params.append(f"%{filters['name']}%")
+        if filters.get('name') and filters['name'].strip():
+            sql += " AND f.Name LIKE %s"
+            params.append(f"%{filters['name']}%")
 
-            if filters.get('restaurant'):
-                sql += " AND r.Name LIKE %s"
-                params.append(f"%{filters['restaurant']}%")
+        if filters.get('restaurant') and filters['restaurant'].strip():
+            sql += " AND r.Name LIKE %s"
+            params.append(f"%{filters['restaurant']}%")
 
-            if filters.get('type'):
-                sql += " AND f.Set_Type = %s"
-                params.append(filters['type'])
+        if filters.get('type') and filters['type'].strip():
+            sql += " AND f.Set_Type = %s"
+            params.append(filters['type'])
 
-            # 增加日誌輸出
-            logging.info(f"執行SQL: {sql}")
-            logging.info(f"參數: {params}")
-            
-            try:
-                cursor.execute(sql, params)
-                rows = cursor.fetchall()
-                
-                # 將資料庫結果轉換為 JSON 格式
-                results = []
-                for row in rows:
-                    logging.info(f"行數據: {row}")
-                    results.append({
-                        'id': row['FoodID'],
-                        'name': row['Name'],
-                        'calories': row['Calories'],
-                        'price': row['Price'],
-                        'food_type': row['Food_Type'],
-                        'type': row['Set_Type'],
-                        'restaurant': row['Restaurant']
-                    })
-                
-                return results
-            except Exception as e:
-                logging.error(f"SQL執行錯誤: {str(e)}")
-                raise Exception(f"SQL執行錯誤: {str(e)}")
-
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        
+        # 將資料庫結果轉換為 JSON 格式
+        results = []
+        for row in rows:
+            results.append({
+                'id': row['FoodID'],
+                'name': row['Name'],
+                'calories': row['Calories'],
+                'price': row['Price'],
+                'food_type': row['Food_Type'],
+                'type': row['Set_Type'],
+                'restaurant': row['Restaurant']
+            })
+        
+        return results
     except Exception as e:
-        logging.error(f"數據庫錯誤: {str(e)}")
+        import traceback
+        logging.error(f"search_food SQL error: {e}\n{traceback.format_exc()}")
         raise Exception(f"Database error: {str(e)}")
     finally:
+        cursor.close()
         conn.close()
 
 def add_food_record(user_id, food_data):
@@ -387,5 +383,49 @@ def remove_from_favorites(user_id, food_id):
     except Exception as e:
         conn.rollback()
         raise Exception(f"Error removing food from favorites: {str(e)}")
+    finally:
+        conn.close()
+
+def update_food_record(user_id, record_id, updates):
+    """
+    更新食物記錄
+    Args:
+        user_id (int): 用戶ID (驗證權限)
+        record_id (int): 記錄ID
+        updates (dict): 欲更新欄位（mealtime, quantity, date）
+    Returns:
+        dict: 操作結果
+    """
+    conn = get_db_connection()
+    try:
+        # 檢查記錄是否存在且屬於該用戶
+        with conn.cursor() as cursor:
+            cursor.execute(
+                "SELECT RecordID FROM Food_Records WHERE RecordID = %s AND UserID = %s",
+                (record_id, user_id)
+            )
+            record = cursor.fetchone()
+            if not record:
+                raise ValueError(f"Food record not found or does not belong to user {user_id}")
+        # 動態組裝 SQL
+        set_clauses = []
+        params = []
+        for field in ['Mealtime', 'Quantity', 'Date']:
+            key = field.lower()
+            if key in updates:
+                set_clauses.append(f"{field} = %s")
+                params.append(updates[key])
+        if not set_clauses:
+            raise ValueError("No valid fields to update")
+        params.append(record_id)
+        # 執行更新
+        with conn.cursor() as cursor:
+            sql = f"UPDATE Food_Records SET {', '.join(set_clauses)} WHERE RecordID = %s"
+            cursor.execute(sql, params)
+            conn.commit()
+            return {"message": "Food record updated successfully"}
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"Error updating food record: {str(e)}")
     finally:
         conn.close() 
